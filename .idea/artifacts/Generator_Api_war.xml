@@ -1,0 +1,14 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="Generator-Api:war">
+    <output-path>$PROJECT_DIR$/generator-api/target</output-path>
+    <properties id="maven-jee-properties">
+      <options>
+        <module>Generator-Api</module>
+        <packaging>war</packaging>
+      </options>
+    </properties>
+    <root id="archive" name="provysobjectgen.war">
+      <element id="artifact" artifact-name="Generator-Api:war exploded" />
+    </root>
+  </artifact>
+</component>

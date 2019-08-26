@@ -1,0 +1,41 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "Generator for ProvysObject based classes",
+    "description" : "Contains methods for geenrating classes, needed to implement access to objects from Provys database, described as entities in its metadata catalogue",
+    "version" : "1.0"
+  },
+  "servers" : [ {
+    "url" : "/api",
+    "variables" : { }
+  } ],
+  "paths" : {
+    "/entity/interface/{entityNm}" : {
+      "get" : {
+        "summary" : "Generate Interface",
+        "description" : "Generate interface, representing instance of object of given type",
+        "operationId" : "getInterface",
+        "parameters" : [ {
+          "name" : "entityNm",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "default" : {
+            "description" : "Class source",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
