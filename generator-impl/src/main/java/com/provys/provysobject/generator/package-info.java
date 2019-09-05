@@ -1,0 +1,4 @@
+@ParametersAreNonnullByDefault
+package com.provys.provysobject.generator;
+
+import javax.annotation.ParametersAreNonnullByDefault;

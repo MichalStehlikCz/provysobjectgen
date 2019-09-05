@@ -8,7 +8,54 @@ servers:
 - url: /api
   variables: {}
 paths:
-  /entity/interface/{entityNm}:
+  /entity/{entityNm}/value:
+    get:
+      summary: Generate Loader Interface
+      description: Generate loader interface - interface defining requirements for
+        loader for given entity. Only used to initialize file if one doesn't exist,
+        is not refreshed later
+      operationId: getLoaderInterface
+      parameters:
+      - name: entityNm
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: friendEntities
+        in: query
+        schema:
+          type: string
+      responses:
+        default:
+          description: Class source
+          content:
+            text/plain:
+              schema:
+                type: string
+  /entity/{entityNm}/proxy:
+    get:
+      summary: Generate Proxy
+      description: Generate proxy - simple envelope on generated proxy file. Used
+        only for initialisation, later not regenerated
+      operationId: getProxy
+      parameters:
+      - name: entityNm
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: friendEntities
+        in: query
+        schema:
+          type: string
+      responses:
+        default:
+          description: Class source
+          content:
+            text/plain:
+              schema:
+                type: string
+  /entity/{entityNm}/interface:
     get:
       summary: Generate Interface
       description: Generate interface, representing instance of object of given type
@@ -17,6 +64,56 @@ paths:
       - name: entityNm
         in: path
         required: true
+        schema:
+          type: string
+      - name: friendEntities
+        in: query
+        schema:
+          type: string
+      responses:
+        default:
+          description: Class source
+          content:
+            text/plain:
+              schema:
+                type: string
+  /entity/{entityNm}/geninterface:
+    get:
+      summary: Generate GenInterface
+      description: Generate generated ancestor of interface for accessing objects
+        of given type, containing attribute getters
+      operationId: getGenInterface
+      parameters:
+      - name: entityNm
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: friendEntities
+        in: query
+        schema:
+          type: string
+      responses:
+        default:
+          description: Class source
+          content:
+            text/plain:
+              schema:
+                type: string
+  /entity/{entityNm}/genproxy:
+    get:
+      summary: Generate GenProxy
+      description: Generate generated proxy ancestor, implementing interface of given
+        object in scope defined by generated interface
+      operationId: getGenProxy
+      parameters:
+      - name: entityNm
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: friendEntities
+        in: query
         schema:
           type: string
       responses:
