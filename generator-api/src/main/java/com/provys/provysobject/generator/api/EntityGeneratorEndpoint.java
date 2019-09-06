@@ -162,4 +162,45 @@ public class EntityGeneratorEndpoint {
                                        @QueryParam("friendEntities") @Nullable String friendEntities) {
         return Response.ok(entityGenerator.generateLoaderBase(entityNm, friendEntities)).build();
     }
+
+    @GET
+    @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/dbloader")
+    @Produces("text/plain")
+    @Operation(
+            summary = "Generate DbLoader class",
+            description = "Generate database loader class - at the moment, does not generate load by methods.",
+            responses = {
+                    @ApiResponse(
+                            description = "Class source",
+                            content = @Content(
+                                    mediaType = "text/plain",
+                                    schema = @Schema(
+                                            implementation = String.class,
+                                            maxLength = 30
+                                    )))})
+    public Response getDbLoader(@PathParam("entityNm") String entityNm,
+                                  @QueryParam("friendEntities") @Nullable String friendEntities) {
+        return Response.ok(entityGenerator.generateDbLoader(entityNm, friendEntities)).build();
+    }
+
+    @GET
+    @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/dbloadrunner")
+    @Produces("text/plain")
+    @Operation(
+            summary = "Generate DbLoadRunner class",
+            description = "Generate database load runner class - class that actually fetches data from database and " +
+                    "converts them to value objects.",
+            responses = {
+                    @ApiResponse(
+                            description = "Class source",
+                            content = @Content(
+                                    mediaType = "text/plain",
+                                    schema = @Schema(
+                                            implementation = String.class,
+                                            maxLength = 30
+                                    )))})
+    public Response getDbLoadRunner(@PathParam("entityNm") String entityNm,
+                                @QueryParam("friendEntities") @Nullable String friendEntities) {
+        return Response.ok(entityGenerator.generateDbLoadRunner(entityNm, friendEntities)).build();
+    }
 }

@@ -94,4 +94,22 @@ public class DefaultEntityGenerator implements EntityGenerator {
                 parseFriendEntities(friendEntities));
         return entity.generateLoaderBase().toString();
     }
+
+    @Nonnull
+    @Override
+    public String generateDbLoader(String entityNm, @Nullable String friendEntities) {
+        var entity = new GeneratorEntity(catalogueRepository,
+                catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
+                parseFriendEntities(friendEntities));
+        return entity.generateDbLoader().toString();
+    }
+
+    @Nonnull
+    @Override
+    public String generateDbLoadRunner(String entityNm, @Nullable String friendEntities) {
+        var entity = new GeneratorEntity(catalogueRepository,
+                catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
+                parseFriendEntities(friendEntities));
+        return entity.generateDbLoadRunner().toString();
+    }
 }

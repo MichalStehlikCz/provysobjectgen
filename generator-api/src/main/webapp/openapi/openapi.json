@@ -109,11 +109,11 @@
         }
       }
     },
-    "/entity/{entityNm}/geninterface" : {
+    "/entity/{entityNm}/dbloader" : {
       "get" : {
-        "summary" : "Generate GenInterface",
-        "description" : "Generate generated ancestor of interface for accessing objects of given type, containing attribute getters",
-        "operationId" : "getGenInterface",
+        "summary" : "Generate DbLoader class",
+        "description" : "Generate database loader class - at the moment, does not generate load by methods.",
+        "operationId" : "getDbLoader",
         "parameters" : [ {
           "name" : "entityNm",
           "in" : "path",
@@ -147,6 +147,72 @@
         "summary" : "Generate GenProxy",
         "description" : "Generate generated proxy ancestor, implementing interface of given object in scope defined by generated interface",
         "operationId" : "getGenProxy",
+        "parameters" : [ {
+          "name" : "entityNm",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "friendEntities",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "default" : {
+            "description" : "Class source",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entity/{entityNm}/geninterface" : {
+      "get" : {
+        "summary" : "Generate GenInterface",
+        "description" : "Generate generated ancestor of interface for accessing objects of given type, containing attribute getters",
+        "operationId" : "getGenInterface",
+        "parameters" : [ {
+          "name" : "entityNm",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "friendEntities",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "default" : {
+            "description" : "Class source",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entity/{entityNm}/dbloadrunner" : {
+      "get" : {
+        "summary" : "Generate DbLoadRunner class",
+        "description" : "Generate database load runner class - class that actually fetches data from database and converts them to value objects.",
+        "operationId" : "getDbLoadRunner",
         "parameters" : [ {
           "name" : "entityNm",
           "in" : "path",

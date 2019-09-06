@@ -1,19 +1,26 @@
 package com.provys.provysobject.generator.impl;
 
 import com.provys.catalogue.api.*;
+import com.provys.common.exception.InternalException;
 import com.provys.provysobject.ProvysNmObject;
 import com.provys.provysobject.ProvysObject;
 import com.provys.provysobject.impl.*;
 import com.squareup.javapoet.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.lang.model.element.Modifier;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
 
 class GeneratorEntity implements Entity {
+
+    private static final Logger LOG = LogManager.getLogger(GeneratorEntity.class);
 
     @Nonnull
     private final CatalogueRepository catalogueRepository;
@@ -31,6 +38,8 @@ class GeneratorEntity implements Entity {
     private final String packageNameImpl;
     @Nonnull
     private final String packageNameImplGen;
+    @Nonnull
+    private final String packageNameDbLoader;
     @Nonnull
     private final ClassName moduleRepositoryName;
     @Nonnull
@@ -52,6 +61,10 @@ class GeneratorEntity implements Entity {
     @Nonnull
     private final ClassName loaderBaseName;
     @Nonnull
+    private final ClassName dbLoaderName;
+    @Nonnull
+    private final ClassName dbLoadRunnerName;
+    @Nonnull
     private final List<GeneratorAttr> cAttrs;
 
     GeneratorEntity(CatalogueRepository catalogueRepository, Entity entity, String module,
@@ -65,6 +78,7 @@ class GeneratorEntity implements Entity {
         this.packageNameApiGen = packageNameApi + ".gen";
         this.packageNameImpl = packageName + ".impl";
         this.packageNameImplGen = packageNameImpl + ".gen";
+        this.packageNameDbLoader = packageName + ".dbloader";
         var entityName = getCProperName();
         this.moduleRepositoryName = ClassName.get(packageNameApi,
                 Character.toLowerCase(module.charAt(0)) + module.substring(1).toLowerCase());
@@ -77,6 +91,8 @@ class GeneratorEntity implements Entity {
         this.valueName = ClassName.get(packageNameImplGen, entityName + "Value");
         this.loaderInterfaceName = ClassName.get(packageNameImpl, entityName + "Loader");
         this.loaderBaseName = ClassName.get(packageNameImpl, entityName + "LoaderBase");
+        this.dbLoaderName = ClassName.get(packageNameDbLoader, entityName + "DbLoader");
+        this.dbLoadRunnerName = ClassName.get(packageNameDbLoader, entityName + "DbLoadRunner");
         this.cAttrs = buildCAttrs();
     }
 
@@ -640,6 +656,213 @@ class GeneratorEntity implements Entity {
                                         ProvysObjectLoaderImpl.class),
                                 interfaceName, valueName, proxyName, managerImplName, TypeVariableName.get("S")))
                         .addSuperinterface(loaderInterfaceName)
+                        .build())
+                .build();
+    }
+
+    @Nonnull
+    private TypeName[] getDbLoaderRecordTypeParams() {
+        var result = new TypeName[cAttrs.size() + 1];
+        int pos = 0;
+        result[pos++] = ClassName.get(BigInteger.class);
+        for (var attr : cAttrs) {
+            result[pos++] = ClassName.get(attr.getDomain().getImplementingClass(true));
+        }
+        return result;
+    }
+
+    @Nonnull
+    private TypeName getDbLoaderRecordType() {
+        if (cAttrs.size() >= 22) {
+            return ClassName.get("org.jooq", "Record");
+        }
+        return ParameterizedTypeName.get(
+                ClassName.get("org.jooq", "Record" + (cAttrs.size() + 1)),
+                getDbLoaderRecordTypeParams());
+    }
+
+    @Nonnull
+    private FieldSpec getDbContextField() {
+        return FieldSpec.builder(
+                ClassName.get("com.provys.provysdb", "ProvysDbContext"),
+                "dbContext")
+                .addAnnotation(Nonnull.class)
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .build();
+    }
+
+    @Nonnull
+    private MethodSpec getDbLoaderMethod(@Nullable GeneratorAttr attr) {
+        return MethodSpec.methodBuilder("getLoadRunnerBy" +
+                ((attr == null) ? "Id" : attr.getInitCapJavaName()))
+                .addAnnotation(Nonnull.class)
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PROTECTED)
+                .returns(dbLoadRunnerName)
+                .addParameter(managerImplName, "manager")
+                .addParameter((attr == null) ? BigInteger.class : attr.getDomain().getImplementingClass(false),
+                        (attr == null) ? "id" : attr.getJavaName())
+                .addStatement(
+                        "return new $LDbLoadRunner(manager, dbContext, $T.field($S, $T.class).eq($L))",
+                        getCProperName(), ClassName.get("org.jooq.impl", "DSL"),
+                        (attr == null) ? getNameNm() + "_ID" : attr.getNameNm(),
+                        (attr == null) ? BigInteger.class : attr.getDomain().getImplementingClass(true),
+                        (attr == null) ? "id" : attr.getJavaName())
+                .build();
+    }
+
+    @Nonnull
+    private MethodSpec getDbLoaderMethodAll() {
+        return MethodSpec.methodBuilder("getLoadRunnerAll")
+                .addAnnotation(Nonnull.class)
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PROTECTED)
+                .returns(dbLoadRunnerName)
+                .addParameter(managerImplName, "manager")
+                .addStatement(
+                        "return new $LDbLoadRunner(manager, dbContext, null)", getCProperName())
+                .build();
+    }
+
+    @Nonnull
+    private Collection<MethodSpec> getDbLoaderMethods() {
+        var result = new ArrayList<MethodSpec>(5);
+        for (var attr : cAttrs) {
+            if (attr.getNameNm().equals("NAME_NM") && hasNmAttr()) {
+                result.add(getDbLoaderMethod(attr));
+            }
+        }
+        result.add(getDbLoaderMethod(null));
+        result.add(getDbLoaderMethodAll());
+        return result;
+    }
+
+    @Nonnull
+    JavaFile generateDbLoader() {
+        return  JavaFile.builder(packageNameDbLoader,
+                TypeSpec.classBuilder(dbLoaderName)
+                        .addAnnotation(ApplicationScoped.class)
+                        .addModifiers(Modifier.PUBLIC)
+                        .superclass(ParameterizedTypeName.get(
+                                loaderBaseName, getDbLoaderRecordType()))
+                        .addField(getDbContextField())
+                        .addMethod(MethodSpec.constructorBuilder()
+                                .addAnnotation(Inject.class)
+                                .addParameter(
+                                        ClassName.get("com.provys.provysdb", "ProvysDbContext"),
+                                        "dbContext")
+                                .addStatement("this.dbContext = $T.requireNonNull(dbContext)", Objects.class)
+                                .build())
+                        .addMethods(getDbLoaderMethods())
+                        .build())
+                .build();
+    }
+
+    @Nonnull
+    private MethodSpec getDbLoadRunnerSelect() {
+        var dsl = ClassName.get("org.jooq.impl", "DSL");
+        var builder = MethodSpec.methodBuilder("select")
+                .addAnnotation(Nonnull.class)
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PROTECTED)
+                .returns(ParameterizedTypeName.get(ClassName.get(List.class), getDbLoaderRecordType()))
+                .addStatement("$T result", ParameterizedTypeName.get(ClassName.get(List.class),
+                        getDbLoaderRecordType()))
+                .beginControlFlow("try (var dsl = dbContext.createDSL())")
+                .addCode("result = dsl.select($T.field($S, $T.class)", dsl, getNameNm() + "_ID", BigInteger.class);
+        for (var attr : cAttrs) {
+            builder.addCode(", $T.field($S, $T.class)", dsl, attr.getNameNm(),
+                    attr.getDomain().getImplementingClass(true));
+        }
+        return builder.addCode(")\n")
+                .addCode("        .from($T.table($S))\n", dsl, getTable()
+                        .orElseThrow(() -> new InternalException(LOG, "Table not specified in entity " + getNameNm())))
+                .addCode("        .where(condition == null ? $T.noCondition() : condition)\n", dsl)
+                .addCode("        .fetch();\n")
+                .endControlFlow()
+                .addStatement("return result")
+                .build();
+    }
+
+    @Nonnull
+    private CodeBlock getDbLoadRunnerCreateValueObjectBody() {
+        var builder = CodeBlock.builder()
+                .add("return new $T(getId(sourceObject)", valueName);
+        for (var attr : cAttrs) {
+            if (attr.useObjectReference()) {
+                if (attr.getMandatory()) {
+                    builder.add(", getManager().getRepository().get$LManager()." +
+                                    "getOrAddById(sourceObject.get($S, $T.class))",
+                            catalogueRepository.getEntityManager().getByNameNm(attr.getSubdomainNm().orElseThrow())
+                                    .getNameNm(), attr.getNameNm(), BigInteger.class);
+                } else {
+                    builder.add(", (sourceObject.get($S, $T.class) == null) ? " +
+                                    "null : getManager().getRepository().get$LManager()." +
+                                    "getOrAddById(sourceObject.get($S, $T.class))",
+                            catalogueRepository.getEntityManager().getByNameNm(attr.getSubdomainNm().orElseThrow())
+                                    .getNameNm(), attr.getNameNm(), BigInteger.class);
+                }
+            } else {
+                builder.add(", sourceObject.get($S, $T.class)", attr.getNameNm(),
+                        attr.getDomain().getImplementingClass(true));
+            }
+        }
+        return builder.add(")").build();
+
+    }
+
+    @Nonnull
+    private MethodSpec getDbLoadRunnerCreateValueObject() {
+        return MethodSpec.methodBuilder("createValueObject")
+                .addAnnotation(Nonnull.class)
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PROTECTED)
+                .returns(valueName)
+                .addParameter(getDbLoaderRecordType(),
+                        "sourceObject")
+                .addStatement(getDbLoadRunnerCreateValueObjectBody())
+                .build();
+    }
+
+    @Nonnull
+    JavaFile generateDbLoadRunner() {
+        return  JavaFile.builder(packageNameDbLoader,
+                TypeSpec.classBuilder(dbLoadRunnerName)
+                        .superclass(ParameterizedTypeName.get(
+                                ClassName.get(ProvysObjectLoadRunner.class),
+                                interfaceName, valueName, proxyName, managerImplName,
+                                getDbLoaderRecordType()))
+                        .addField(getDbContextField())
+                        .addField(FieldSpec.builder(ClassName.get("org.jooq", "Condition"),
+                                "condition")
+                                .addAnnotation(Nullable.class)
+                                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                                .build())
+                        .addMethod(MethodSpec.constructorBuilder()
+                                .addParameter(managerImplName, "manager")
+                                .addParameter(
+                                        ClassName.get("com.provys.provysdb", "ProvysDbContext"),
+                                        "dbContext")
+                                .addParameter(ParameterSpec.builder(
+                                        ClassName.get("org.jooq", "Condition"),
+                                        "condition")
+                                        .addAnnotation(Nullable.class)
+                                        .build())
+                                .addStatement("super(manager)")
+                                .addStatement("this.dbContext = $T.requireNonNull(dbContext)", Objects.class)
+                                .addStatement("this.condition = condition")
+                                .build())
+                        .addMethod(getDbLoadRunnerSelect())
+                        .addMethod(MethodSpec.methodBuilder("getId")
+                                .addAnnotation(Nonnull.class)
+                                .addAnnotation(Override.class)
+                                .addModifiers(Modifier.PROTECTED)
+                                .returns(BigInteger.class)
+                                .addParameter(getDbLoaderRecordType(),"sourceObject")
+                                .addStatement("return sourceObject.get($S, $T.class)", getNameNm() + "_ID",
+                                        BigInteger.class)
+                                .build())
+                        .addMethod(getDbLoadRunnerCreateValueObject())
                         .build())
                 .build();
     }

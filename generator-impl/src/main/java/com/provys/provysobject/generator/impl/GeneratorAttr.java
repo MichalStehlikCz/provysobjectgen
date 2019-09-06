@@ -137,6 +137,11 @@ class GeneratorAttr implements Attr {
         return Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 
+    @Nonnull
+    String getInitCapJavaName() {
+        return toInitCap(getJavaName());
+    }
+
     /**
      * @return true if this attribute is object reference and referenced object is part of group and thus should be
      * referenced as reference to object and not just Id

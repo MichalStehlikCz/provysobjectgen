@@ -67,4 +67,22 @@ public interface EntityGenerator {
      */
     @Nonnull
     String generateLoaderBase(String entityNm, @Nullable String friendEntities);
+
+    /**
+     * Generate database loader - at the moment, does not generate load by methods
+     *
+     * @param entityNm is internal name of entity class should be based on
+     * @return source code for given class
+     */
+    @Nonnull
+    String generateDbLoader(String entityNm, @Nullable String friendEntities);
+
+    /**
+     * Generate database load runner - class that actually fetches data from database and converts them to value objects
+     *
+     * @param entityNm is internal name of entity class should be based on
+     * @return source code for given class
+     */
+    @Nonnull
+    String generateDbLoadRunner(String entityNm, @Nullable String friendEntities);
 }
