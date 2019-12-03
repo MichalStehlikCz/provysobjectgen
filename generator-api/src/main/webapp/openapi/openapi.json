@@ -12,9 +12,9 @@
   "paths" : {
     "/entity/{entityNm}/value" : {
       "get" : {
-        "summary" : "Generate Loader Interface",
-        "description" : "Generate loader interface - interface defining requirements for loader for given entity. Only used to initialize file if one doesn't exist, is not refreshed later",
-        "operationId" : "getLoaderInterface",
+        "summary" : "Generate Loader Base class",
+        "description" : "Generate loader base class - common ancestor for loaders for given entity.",
+        "operationId" : "getLoaderBase",
         "parameters" : [ {
           "name" : "entityNm",
           "in" : "path",
@@ -76,44 +76,11 @@
         }
       }
     },
-    "/entity/{entityNm}/interface" : {
+    "/entity/{entityNm}/dbloadrunner" : {
       "get" : {
-        "summary" : "Generate Interface",
-        "description" : "Generate interface, representing instance of object of given type",
-        "operationId" : "getInterface",
-        "parameters" : [ {
-          "name" : "entityNm",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "friendEntities",
-          "in" : "query",
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "default" : {
-            "description" : "Class source",
-            "content" : {
-              "text/plain" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/entity/{entityNm}/dbloader" : {
-      "get" : {
-        "summary" : "Generate DbLoader class",
-        "description" : "Generate database loader class - at the moment, does not generate load by methods.",
-        "operationId" : "getDbLoader",
+        "summary" : "Generate DbLoadRunner class",
+        "description" : "Generate database load runner class - class that actually fetches data from database and converts them to value objects.",
+        "operationId" : "getDbLoadRunner",
         "parameters" : [ {
           "name" : "entityNm",
           "in" : "path",
@@ -175,6 +142,39 @@
         }
       }
     },
+    "/entity/{entityNm}/interface" : {
+      "get" : {
+        "summary" : "Generate Interface",
+        "description" : "Generate interface, representing instance of object of given type",
+        "operationId" : "getInterface",
+        "parameters" : [ {
+          "name" : "entityNm",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "friendEntities",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "default" : {
+            "description" : "Class source",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/entity/{entityNm}/geninterface" : {
       "get" : {
         "summary" : "Generate GenInterface",
@@ -208,11 +208,11 @@
         }
       }
     },
-    "/entity/{entityNm}/dbloadrunner" : {
+    "/entity/{entityNm}/dbloader" : {
       "get" : {
-        "summary" : "Generate DbLoadRunner class",
-        "description" : "Generate database load runner class - class that actually fetches data from database and converts them to value objects.",
-        "operationId" : "getDbLoadRunner",
+        "summary" : "Generate DbLoader class",
+        "description" : "Generate database loader class - at the moment, does not generate load by methods.",
+        "operationId" : "getDbLoader",
         "parameters" : [ {
           "name" : "entityNm",
           "in" : "path",

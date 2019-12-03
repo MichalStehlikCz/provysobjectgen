@@ -21,12 +21,12 @@
           <element id="library" level="project" name="Maven: com.provys.catalogue:catalogue-api:1.0.6-SNAPSHOT" />
           <element id="library" level="project" name="Maven: com.provys.provysobject:provysobject-api:1.0.8" />
           <element id="library" level="project" name="Maven: com.provys.catalogue:catalogue-impl:1.0.6-SNAPSHOT" />
-          <element id="library" level="project" name="Maven: com.provys.common:common-exception:1.0.4" />
+          <element id="library" level="project" name="Maven: com.provys.common:common-exception:1.0.19" />
           <element id="library" level="project" name="Maven: com.provys.provysobject:provysobject-impl:1.0.8" />
           <element id="library" level="project" name="Maven: com.provys.catalogue:catalogue-dbloader:1.0.6-SNAPSHOT" />
           <element id="library" level="project" name="Maven: org.jooq.pro:jooq:3.11.11" />
           <element id="library" level="project" name="Maven: javax.xml.bind:jaxb-api:2.2.12" />
-          <element id="library" level="project" name="Maven: com.provys:provysdb:1.1.3" />
+          <element id="library" level="project" name="Maven: com.provys.provysdb:dbcontext:1.2.0" />
           <element id="library" level="project" name="Maven: org.eclipse.microprofile.config:microprofile-config-api:1.3" />
           <element id="library" level="project" name="Maven: org.osgi:org.osgi.annotation.versioning:1.0.0" />
           <element id="library" level="project" name="Maven: com.oracle:ojdbc8:18.3.0" />
@@ -34,7 +34,7 @@
           <element id="archive" name="generator-impl-1.0.0-SNAPSHOT.jar">
             <element id="module-output" name="generator-impl" />
           </element>
-          <element id="library" level="project" name="Maven: com.squareup:javapoet:1.12.0-SNAPSHOT" />
+          <element id="library" level="project" name="Maven: com.squareup:javapoet:1.11.2" />
         </element>
       </element>
       <element id="directory" name="META-INF">
