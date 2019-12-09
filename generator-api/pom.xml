@@ -13,8 +13,8 @@
     <packaging>war</packaging>
     <dependencies>
         <dependency>
-            <groupId>javax</groupId>
-            <artifactId>javaee-api</artifactId>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
         </dependency>
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
@@ -43,6 +43,10 @@
         <dependency>
             <groupId>com.provys.catalogue</groupId>
             <artifactId>catalogue-dbloader</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.provys.provysdb</groupId>
+            <artifactId>dbcontext</artifactId>
         </dependency>
         <dependency>
             <groupId>com.provys.provysobject</groupId>

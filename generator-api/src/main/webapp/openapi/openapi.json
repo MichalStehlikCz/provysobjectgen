@@ -10,77 +10,11 @@
     "variables" : { }
   } ],
   "paths" : {
-    "/entity/{entityNm}/value" : {
-      "get" : {
-        "summary" : "Generate Loader Interface",
-        "description" : "Generate loader interface - interface defining requirements for loader for given entity. Only used to initialize file if one doesn't exist, is not refreshed later",
-        "operationId" : "getLoaderInterface",
-        "parameters" : [ {
-          "name" : "entityNm",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "friendEntities",
-          "in" : "query",
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "default" : {
-            "description" : "Class source",
-            "content" : {
-              "text/plain" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/entity/{entityNm}/proxy" : {
       "get" : {
         "summary" : "Generate Proxy",
         "description" : "Generate proxy - simple envelope on generated proxy file. Used only for initialisation, later not regenerated",
         "operationId" : "getProxy",
-        "parameters" : [ {
-          "name" : "entityNm",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "friendEntities",
-          "in" : "query",
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "default" : {
-            "description" : "Class source",
-            "content" : {
-              "text/plain" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/entity/{entityNm}/geninterface" : {
-      "get" : {
-        "summary" : "Generate GenInterface",
-        "description" : "Generate generated ancestor of interface for accessing objects of given type, containing attribute getters",
-        "operationId" : "getGenInterface",
         "parameters" : [ {
           "name" : "entityNm",
           "in" : "path",
@@ -142,11 +76,11 @@
         }
       }
     },
-    "/entity/{entityNm}/genproxy" : {
+    "/entity/{entityNm}/value" : {
       "get" : {
-        "summary" : "Generate GenProxy",
-        "description" : "Generate generated proxy ancestor, implementing interface of given object in scope defined by generated interface",
-        "operationId" : "getGenProxy",
+        "summary" : "Generate Value",
+        "description" : "Generate value class - object holding all object data",
+        "operationId" : "getValue",
         "parameters" : [ {
           "name" : "entityNm",
           "in" : "path",
@@ -213,6 +147,72 @@
         "summary" : "Generate DbLoadRunner class",
         "description" : "Generate database load runner class - class that actually fetches data from database and converts them to value objects.",
         "operationId" : "getDbLoadRunner",
+        "parameters" : [ {
+          "name" : "entityNm",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "friendEntities",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "default" : {
+            "description" : "Class source",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entity/{entityNm}/geninterface" : {
+      "get" : {
+        "summary" : "Generate GenInterface",
+        "description" : "Generate generated ancestor of interface for accessing objects of given type, containing attribute getters",
+        "operationId" : "getGenInterface",
+        "parameters" : [ {
+          "name" : "entityNm",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "friendEntities",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "default" : {
+            "description" : "Class source",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entity/{entityNm}/genproxy" : {
+      "get" : {
+        "summary" : "Generate GenProxy",
+        "description" : "Generate generated proxy ancestor, implementing interface of given object in scope defined by generated interface",
+        "operationId" : "getGenProxy",
         "parameters" : [ {
           "name" : "entityNm",
           "in" : "path",
