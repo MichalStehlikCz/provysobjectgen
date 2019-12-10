@@ -1,4 +1,4 @@
-package com.provys.provysobject.generator.api;
+package com.provys.provysobject.generator.restapi;
 
 import com.provys.provysobject.generator.EntityGenerator;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,4 +1,4 @@
-package com.provys.provysobject.generator.api;
+package com.provys.provysobject.generator.restapi;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
@@ -15,6 +15,6 @@ import javax.ws.rs.core.Application;
                 description = "Contains methods for geenrating classes, needed to implement access to objects from" +
                         " Provys database, described as entities in its metadata catalogue"
         ),
-        servers = {@Server(url = "/api")}) // needed because swagger does not read path from appplication...
+        servers = {@Server(url = "provysobjectgen/api")}) // needed because swagger does not read path from appplication...
 public class ProvysObjectGenApplication extends Application {
 }

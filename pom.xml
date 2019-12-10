@@ -6,8 +6,8 @@
     <packaging>pom</packaging>
     <version>1.0.0-SNAPSHOT</version>
     <modules>
-        <module>generator-impl</module>
-        <module>generator-api</module>
+        <module>generator</module>
+        <module>restapi</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
