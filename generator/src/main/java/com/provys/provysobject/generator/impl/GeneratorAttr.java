@@ -5,13 +5,20 @@ import com.squareup.javapoet.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.json.bind.annotation.JsonbProperty;
 import javax.lang.model.element.Modifier;
+import javax.xml.bind.annotation.XmlElement;
 import java.math.BigInteger;
 import java.security.InvalidParameterException;
 import java.util.Objects;
 import java.util.Optional;
 
 class GeneratorAttr implements Attr {
+
+    @Nonnull
+    private static String toInitCap(String name) {
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
 
     @Nonnull
     private final GeneratorEntity entity;
@@ -133,10 +140,6 @@ class GeneratorAttr implements Attr {
         return attr.getNameNm().equals(attr.getEntity().getNameNm() + "_ID");
     }
 
-    private static String toInitCap(String name) {
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
-    }
-
     @Nonnull
     String getInitCapJavaName() {
         return toInitCap(getJavaName());
@@ -153,20 +156,11 @@ class GeneratorAttr implements Attr {
 
     @Nonnull
     TypeName getFieldTypeName() {
-        if (useObjectReference()) {
-            return ClassName.get(entity.getPackageNameApi(), entity.getCatalogueRepository().getEntityManager()
-                    .getByNameNm(attr.getSubdomainNm().orElseThrow(
-                            () -> new RuntimeException("Subdomain not defined in attribute " + getNameNm())))
-                    .getNameNm());// should be replaced with getProperName() later
-        }
         return TypeName.get(attr.getDomain().getImplementingClass(!attr.getMandatory()));
     }
 
     @Nonnull
     String getFieldName() {
-        if (useObjectReference()) {
-            return getJavaName().substring(0, getJavaName().length() - 2);
-        }
         return getJavaName();
     }
 
@@ -182,6 +176,47 @@ class GeneratorAttr implements Attr {
             fieldSpecBuilder.addAnnotation(Nullable.class);
         }
         return fieldSpecBuilder.build();
+    }
+
+    @Nonnull
+    TypeName getBuilderFieldTypeName() {
+        return TypeName.get(attr.getDomain().getImplementingClass(true));
+    }
+
+    @Nonnull
+    FieldSpec getBuilderFieldSpec() {
+        return FieldSpec.builder(getBuilderFieldTypeName(), getJavaName(), Modifier.PRIVATE)
+                .addAnnotation(AnnotationSpec
+                        .builder(JsonbProperty.class)
+                        .addMember("value", '"' + getNameNm() + '"')
+                        .build())
+                .addAnnotation(AnnotationSpec
+                        .builder(XmlElement.class)
+                        .addMember("name", '"' + getNameNm() + '"')
+                        .build())
+                .addAnnotation(Nullable.class)
+                .build();
+    }
+
+    @Nonnull
+    ParameterSpec getBuilderSetterParam() {
+        var result = ParameterSpec.builder(getBuilderFieldTypeName(), getJavaName());
+        if (!getMandatory()) {
+            result.addAnnotation(Nullable.class);
+        }
+        return result.build();
+    }
+
+    @Nonnull
+    String getUpdFieldName() {
+        return "upd" + toInitCap(getJavaName());
+    }
+
+    @Nonnull
+    FieldSpec getBuilderUpdFieldSpec() {
+        return FieldSpec.builder(boolean.class, getUpdFieldName(), Modifier.PRIVATE)
+                .initializer("false")
+                .build();
     }
 
     @Nonnull
@@ -212,9 +247,18 @@ class GeneratorAttr implements Attr {
     }
 
     @Nonnull
+    String getAccesorName() {
+        var name = getJavaName();
+        if ((name.length() > 1) && (name.charAt(1) != Character.toLowerCase(name.charAt(1)))) {
+            // weird thing in beans specification (Section 8.8)
+            return name;
+        }
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+
+    @Nonnull
     String getGetterName() {
-        return (getDomain().getImplementingClass(!attr.getMandatory())==boolean.class ? "is" : "get")
-                + toInitCap(attr.getJavaName());
+        return (getDomain().getImplementingClass(!getMandatory())==boolean.class ? "is" : "get") + getAccesorName();
     }
 
     @Nonnull
@@ -225,5 +269,20 @@ class GeneratorAttr implements Attr {
             getterBuilder.addAnnotation(Nonnull.class);
         }
         return getterBuilder;
+    }
+
+    @Nonnull
+    String getSetterName() {
+        return "set" + getAccesorName();
+    }
+
+    @Nonnull
+    String getUpdGetterName() {
+        return "isUpd" + toInitCap(attr.getJavaName());
+    }
+
+    @Nonnull
+    String getUpdSetterName() {
+        return "setUpd" + toInitCap(attr.getJavaName());
     }
 }
