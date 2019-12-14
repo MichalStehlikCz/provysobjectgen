@@ -104,46 +104,6 @@ public class EntityGeneratorEndpoint {
     }
 
     @GET
-    @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/jsonbproxyadapter")
-    @Produces("text/plain")
-    @Operation(
-            summary = "Generate JSON-B Proxy Adapter",
-            description = "Generate JSON-B proxy adapter - translates proxy to value object for serialisation",
-            responses = {
-                    @ApiResponse(
-                            description = "Class source",
-                            content = @Content(
-                                    mediaType = "text/plain",
-                                    schema = @Schema(
-                                            implementation = String.class,
-                                            maxLength = 30
-                                    )))})
-    public Response getJsonbProxyAdapter(@PathParam("entityNm") String entityNm,
-                             @QueryParam("friendEntities") @Nullable String friendEntities) {
-        return Response.ok(entityGenerator.generateJsonbProxyAdapter(entityNm, friendEntities)).build();
-    }
-
-    @GET
-    @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/xmlproxyadapter")
-    @Produces("text/plain")
-    @Operation(
-            summary = "Generate JAXB Proxy Adapter",
-            description = "Generate JAXB proxy adapter - translates proxy to value object for serialisation",
-            responses = {
-                    @ApiResponse(
-                            description = "Class source",
-                            content = @Content(
-                                    mediaType = "text/plain",
-                                    schema = @Schema(
-                                            implementation = String.class,
-                                            maxLength = 30
-                                    )))})
-    public Response getXmlProxyAdapter(@PathParam("entityNm") String entityNm,
-                                         @QueryParam("friendEntities") @Nullable String friendEntities) {
-        return Response.ok(entityGenerator.generateXmlProxyAdapter(entityNm, friendEntities)).build();
-    }
-
-    @GET
     @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/value")
     @Produces("text/plain")
     @Operation(
@@ -161,46 +121,6 @@ public class EntityGeneratorEndpoint {
     public Response getValue(@PathParam("entityNm") String entityNm,
                                 @QueryParam("friendEntities") @Nullable String friendEntities) {
         return Response.ok(entityGenerator.generateValue(entityNm, friendEntities)).build();
-    }
-
-    @GET
-    @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/jsonbvalueadapter")
-    @Produces("text/plain")
-    @Operation(
-            summary = "Generate JSON-B Value Adapter",
-            description = "Generate JSON-B value adapter - translates value to value builder for serialisation",
-            responses = {
-                    @ApiResponse(
-                            description = "Class source",
-                            content = @Content(
-                                    mediaType = "text/plain",
-                                    schema = @Schema(
-                                            implementation = String.class,
-                                            maxLength = 30
-                                    )))})
-    public Response getJsonbValueAdapter(@PathParam("entityNm") String entityNm,
-                                         @QueryParam("friendEntities") @Nullable String friendEntities) {
-        return Response.ok(entityGenerator.generateJsonbValueAdapter(entityNm, friendEntities)).build();
-    }
-
-    @GET
-    @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/xmlvalueadapter")
-    @Produces("text/plain")
-    @Operation(
-            summary = "Generate JAXB Value Adapter",
-            description = "Generate JAXB value adapter - translates value to value builder for serialisation",
-            responses = {
-                    @ApiResponse(
-                            description = "Class source",
-                            content = @Content(
-                                    mediaType = "text/plain",
-                                    schema = @Schema(
-                                            implementation = String.class,
-                                            maxLength = 30
-                                    )))})
-    public Response getXmlValueAdapter(@PathParam("entityNm") String entityNm,
-                                       @QueryParam("friendEntities") @Nullable String friendEntities) {
-        return Response.ok(entityGenerator.generateXmlValueAdapter(entityNm, friendEntities)).build();
     }
 
     @GET

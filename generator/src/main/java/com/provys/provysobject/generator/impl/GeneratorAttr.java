@@ -167,7 +167,10 @@ class GeneratorAttr implements Attr {
     @Nonnull
     FieldSpec getFieldSpec() {
         FieldSpec.Builder fieldSpecBuilder = FieldSpec
-                .builder(getFieldTypeName(), getFieldName(), Modifier.PRIVATE, Modifier.FINAL);
+                .builder(getFieldTypeName(), getFieldName(), Modifier.PRIVATE, Modifier.FINAL).addAnnotation(AnnotationSpec
+                        .builder(XmlElement.class)
+                        .addMember("name", '"' + attr.getNameNm() + '"')
+                        .build());
         if (getMandatory()) {
             if (!getDomain().getImplementingClass(false).isPrimitive()) {
                 fieldSpecBuilder.addAnnotation(Nonnull.class);
@@ -187,12 +190,8 @@ class GeneratorAttr implements Attr {
     FieldSpec getBuilderFieldSpec() {
         return FieldSpec.builder(getBuilderFieldTypeName(), getJavaName(), Modifier.PRIVATE)
                 .addAnnotation(AnnotationSpec
-                        .builder(JsonbProperty.class)
-                        .addMember("value", '"' + getNameNm() + '"')
-                        .build())
-                .addAnnotation(AnnotationSpec
                         .builder(XmlElement.class)
-                        .addMember("name", '"' + getNameNm() + '"')
+                        .addMember("name", '"' + attr.getNameNm() + '"')
                         .build())
                 .addAnnotation(Nullable.class)
                 .build();

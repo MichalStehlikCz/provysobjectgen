@@ -1,5 +1,6 @@
 package com.provys.provysobject.generator.impl;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.provys.catalogue.api.*;
 import com.provys.common.exception.InternalException;
 import com.provys.provysobject.ProvysNmObject;
@@ -14,20 +15,14 @@ import javax.annotation.Nullable;
 import javax.annotation.processing.Generated;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.json.bind.adapter.JsonbAdapter;
-import javax.json.bind.annotation.JsonbProperty;
-import javax.json.bind.annotation.JsonbPropertyOrder;
-import javax.json.bind.annotation.JsonbTransient;
-import javax.json.bind.annotation.JsonbTypeAdapter;
 import javax.lang.model.element.Modifier;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlAdapter;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import javax.xml.bind.annotation.*;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
 
 @SuppressWarnings("squid:S1192") // we do not mind repeating string fragments...
 class GeneratorEntity {
@@ -65,15 +60,7 @@ class GeneratorEntity {
     @Nonnull
     private final ClassName proxyName;
     @Nonnull
-    private final ClassName jsonbProxyAdapter;
-    @Nonnull
-    private final ClassName xmlProxyAdapter;
-    @Nonnull
     private final ClassName valueName;
-    @Nonnull
-    private final ClassName jsonbValueAdapter;
-    @Nonnull
-    private final ClassName xmlValueAdapter;
     @Nonnull
     private final ClassName valueBuilderName;
     @Nonnull
@@ -114,12 +101,8 @@ class GeneratorEntity {
         this.interfaceName =  ClassName.get(packageNameApi, entityName);
         this.genProxyName = ClassName.get(packageNameImplGen, "Gen" + entityName + "Proxy");
         this.proxyName = ClassName.get(packageNameImpl, entityName + "Proxy");
-        this.jsonbProxyAdapter = ClassName.get(packageNameImpl, "Jsonb" + entityName + "ProxyAdapter");
-        this.xmlProxyAdapter = ClassName.get(packageNameImpl, "Xml" + entityName + "ProxyAdapter");
-        this.valueName = ClassName.get(packageNameImplGen, entityName + "Value");
-        this.jsonbValueAdapter = ClassName.get(packageNameImpl, "Jsonb" + entityName + "ValueAdapter");
-        this.xmlValueAdapter = ClassName.get(packageNameImpl, "Xml" + entityName + "ValueAdapter");
-        this.valueBuilderName = ClassName.get(packageNameImplGen, entityName + "ValueBuilder");
+        this.valueName = ClassName.get(packageNameImplGen, "Gen" + entityName + "Value");
+        this.valueBuilderName = ClassName.get(packageNameImplGen, "Gen" + entityName + "ValueBuilder");
         this.loaderInterfaceName = ClassName.get(packageNameImpl, entityName + "Loader");
         this.loaderBaseName = ClassName.get(packageNameImpl, entityName + "LoaderBase");
         this.dbLoaderName = ClassName.get(packageNameDbLoader, entityName + "DbLoader");
@@ -207,6 +190,18 @@ class GeneratorEntity {
     }
 
     @Nonnull
+    private String getPropertyOrderValue() {
+        var builder = new StringBuilder()
+                .append("{\"id\"");
+        for (var attr : cAttrs) {
+            builder.append(", \"").append(attr.getFieldName()).append('"');
+        }
+        return builder
+                .append("}")
+                .toString();
+    }
+
+    @Nonnull
     private Collection<MethodSpec> getGenInterfaceGetters() {
         var result = new ArrayList<MethodSpec>(cAttrs.size() * 2);
         for (var attr : cAttrs) {
@@ -282,20 +277,33 @@ class GeneratorEntity {
     @Nonnull
     private Collection<MethodSpec> getGenProxyGetters() {
         var result = new ArrayList<MethodSpec>(cAttrs.size() * 2);
+        // needed to add proper element name for JAXB serialisation
+        result.add(MethodSpec
+                .methodBuilder("getId")
+                .returns(BigInteger.class)
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(AnnotationSpec
+                        .builder(XmlElement.class)
+                        .addMember("name", "$S", getNameNm() + "_ID")
+                        .build())
+                .addStatement("return super.getId()")
+                .build());
         for (var attr : cAttrs) {
             if (!attr.getNameNm().equals("NAME_NM") || !hasNmAttr()) {
                 if (attr.useObjectReference()) {
                     result.add(attr.getRefGetterBuilder()
                             .addModifiers(Modifier.PUBLIC)
                             .addStatement(getGenProxyRefGetterStatement(attr))
-                            .build()
-                    );
+                            .build());
                 }
                 result.add(attr.getGetterBuilder()
                         .addModifiers(Modifier.PUBLIC)
+                        .addAnnotation(AnnotationSpec
+                                .builder(XmlElement.class)
+                                .addMember("name", '"' + attr.getNameNm() + '"')
+                                .build())
                         .addStatement("return validateValueObject().$L()", attr.getGetterName())
-                        .build()
-                );
+                        .build());
             }
         }
         return result;
@@ -306,6 +314,10 @@ class GeneratorEntity {
         return JavaFile.builder(packageNameImplGen,
                 TypeSpec.classBuilder(genProxyName)
                         .addAnnotation(generatedAnnotation)
+                        .addAnnotation(AnnotationSpec
+                                .builder(XmlAccessorType.class)
+                                .addMember("value", "$T.NONE", XmlAccessType.class)
+                                .build())
                         .addModifiers(Modifier.ABSTRACT)
                         .superclass(ParameterizedTypeName.get(
                                 hasNmAttr() ? ClassName.get(ProvysNmObjectProxyImpl.class) :
@@ -314,6 +326,22 @@ class GeneratorEntity {
                         .addMethod(getGenProxyConstructor())
                         .addMethods(getGenProxyGetters())
                         .build())
+                .build();
+    }
+
+    @Nonnull
+    private MethodSpec getProxyJaxbFakeCreate() {
+        return MethodSpec.methodBuilder("jaxbFakeCreate")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                .addAnnotation(AnnotationSpec
+                        .builder(SuppressWarnings.class)
+                        .addMember("value", "$S", "unused")
+                        .build())
+                .returns(proxyName)
+                .addStatement("throw new $T(LOG, \"Proxy cannot be unmarshalled from XML\")", InternalException.class)
+                .addJavadoc("Formally needed to allow jaxb marshalling")
+                .addJavadoc("")
+                .addJavadoc("@return nothing, it is never called")
                 .build();
     }
 
@@ -353,97 +381,36 @@ class GeneratorEntity {
         return JavaFile.builder(packageNameImpl,
                 TypeSpec.classBuilder(proxyName)
                         .addModifiers(Modifier.PUBLIC)
-                        .addAnnotation(
-                                AnnotationSpec.builder(JsonbTypeAdapter.class)
-                                        .addMember("value", "$T.class", jsonbProxyAdapter)
-                                        .build()
-                        )
-                        .addAnnotation(
-                                AnnotationSpec.builder(XmlJavaTypeAdapter.class)
-                                        .addMember("value", "$T.class", xmlProxyAdapter)
-                                        .build()
-                        )
+                        .addAnnotation(AnnotationSpec
+                                .builder(SuppressWarnings.class)
+                                .addMember("value", "$S", "ValidExternallyBoundObject")
+                                .build())
+                        .addAnnotation(AnnotationSpec
+                                .builder(XmlAccessorType.class)
+                                .addMember("value", "$T.NONE", XmlAccessType.class)
+                                .build())
+                        .addAnnotation(AnnotationSpec
+                                .builder(XmlType.class)
+                                .addMember("name", "$S", "")
+                                .addMember("factoryClass", "$T.class", proxyName)
+                                .addMember("factoryMethod", "$S", "jaxbFakeCreate")
+                                .addMember("propOrder", getPropertyOrderValue())
+                                .build())
+                        .addAnnotation(AnnotationSpec
+                                .builder(XmlRootElement.class)
+                                .addMember("name", "$S", getNameNm())
+                                .build())
                         .superclass(genProxyName)
                         .addSuperinterface(interfaceName)
+                        .addField(FieldSpec
+                                .builder(Logger.class, "LOG")
+                                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                                .initializer("$T.getLogger($T.class)", LogManager.class, proxyName)
+                                .build())
+                        .addMethod(getProxyJaxbFakeCreate())
                         .addMethod(getProxyConstructor())
                         .addMethod(getProxySelf())
                         .addMethod(getProxySelfAsObject())
-                        .build())
-                .build();
-    }
-
-    @Nonnull
-    JavaFile generateJsonbProxyAdapter() {
-        return  JavaFile.builder(packageNameImpl,
-                TypeSpec.classBuilder(jsonbProxyAdapter)
-                        .addModifiers(Modifier.PUBLIC)
-                        .addAnnotation(generatedAnnotation)
-                        .addSuperinterface(ParameterizedTypeName.get(ClassName.get(JsonbAdapter.class),
-                                proxyName, valueBuilderName))
-                        .addField(FieldSpec.builder(Logger.class, "LOG")
-                                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
-                                .initializer("$T.getLogger($T.class)", LogManager.class, jsonbProxyAdapter)
-                                .build()
-                        )
-                        .addMethod(
-                                MethodSpec.methodBuilder("adaptToJson")
-                                        .addParameter(proxyName, "proxy")
-                                        .addModifiers(Modifier.PUBLIC)
-                                        .returns(valueBuilderName)
-                                        .addAnnotation(Override.class)
-                                        .addAnnotation(Nonnull.class)
-                                        .addStatement("return new $L(proxy.validateValueObject())", valueBuilderName)
-                                        .build()
-                        )
-                        .addMethod(
-                                MethodSpec.methodBuilder("adaptFromJson")
-                                        .addParameter(valueBuilderName, "builder")
-                                        .addModifiers(Modifier.PUBLIC)
-                                        .returns(proxyName)
-                                        .addAnnotation(Override.class)
-                                        .addAnnotation(Nonnull.class)
-                                        .addStatement("throw new $T(LOG, \"Cannot deserialize $LProxy from JSON\")",
-                                                InternalException.class, getCProperName())
-                                        .build()
-                        )
-                        .build())
-                .build();
-    }
-
-    @Nonnull
-    JavaFile generateXmlProxyAdapter() {
-        return  JavaFile.builder(packageNameImpl,
-                TypeSpec.classBuilder(xmlProxyAdapter)
-                        .addModifiers(Modifier.PUBLIC)
-                        .addAnnotation(generatedAnnotation)
-                        .superclass(ParameterizedTypeName.get(ClassName.get(XmlAdapter.class),
-                                valueBuilderName, proxyName))
-                        .addField(FieldSpec.builder(Logger.class, "LOG")
-                                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
-                                .initializer("$T.getLogger($T.class)", LogManager.class, xmlProxyAdapter)
-                                .build()
-                        )
-                        .addMethod(
-                                MethodSpec.methodBuilder("marshal")
-                                        .addParameter(proxyName, "proxy")
-                                        .addModifiers(Modifier.PUBLIC)
-                                        .returns(valueBuilderName)
-                                        .addAnnotation(Override.class)
-                                        .addAnnotation(Nonnull.class)
-                                        .addStatement("return new $L(proxy.validateValueObject())", valueBuilderName)
-                                        .build()
-                        )
-                        .addMethod(
-                                MethodSpec.methodBuilder("unmarshal")
-                                        .addParameter(valueBuilderName, "builder")
-                                        .addModifiers(Modifier.PUBLIC)
-                                        .returns(proxyName)
-                                        .addAnnotation(Override.class)
-                                        .addAnnotation(Nonnull.class)
-                                        .addStatement("throw new $T(LOG, \"Cannot deserialize $LProxy from JSON\")",
-                                                InternalException.class, getCProperName())
-                                        .build()
-                        )
                         .build())
                 .build();
     }
@@ -464,9 +431,22 @@ class GeneratorEntity {
         MethodSpec.Builder constructorBuilder = MethodSpec
                 .constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
-                .addParameter(BigInteger.class, "id");
+                .addAnnotation(AnnotationSpec
+                        .builder(JsonCreator.class).build())
+                .addParameter(ParameterSpec
+                        .builder(BigInteger.class, "id")
+                        .addAnnotation(AnnotationSpec
+                                .builder(JsonProperty.class)
+                                .addMember("value", "$S", getNameNm() + "_ID")
+                                .build())
+                        .build());
         for (var attr : cAttrs) {
-            ParameterSpec.Builder parameterBuilder = ParameterSpec.builder(attr.getFieldTypeName(), attr.getFieldName());
+            ParameterSpec.Builder parameterBuilder = ParameterSpec
+                    .builder(attr.getFieldTypeName(), attr.getFieldName())
+                    .addAnnotation(AnnotationSpec
+                            .builder(JsonProperty.class)
+                            .addMember("value", "$S", attr.getNameNm())
+                            .build());
             if (!attr.getMandatory()) {
                 parameterBuilder.addAnnotation(Nullable.class);
             }
@@ -489,6 +469,17 @@ class GeneratorEntity {
     @Nonnull
     private Collection<MethodSpec> getValueGetters() {
         var result = new ArrayList<MethodSpec>(cAttrs.size() * 2);
+        // needed to add proper element name for JAXB serialisation
+        result.add(MethodSpec
+                .methodBuilder("getId")
+                .returns(BigInteger.class)
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(AnnotationSpec
+                        .builder(XmlElement.class)
+                        .addMember("name", "$S", getNameNm() + "_ID")
+                        .build())
+                .addStatement("return super.getId()")
+                .build());
         for (var attr : cAttrs) {
             if (!attr.getNameNm().equals("NAME_NM") || !hasNmAttr()) {
                 result.add(attr.getGetterBuilder()
@@ -558,16 +549,22 @@ class GeneratorEntity {
         return JavaFile.builder(packageNameImplGen,
                 TypeSpec.classBuilder(valueName)
                         .addAnnotation(generatedAnnotation)
-                        .addAnnotation(
-                                AnnotationSpec.builder(JsonbTypeAdapter.class)
-                                        .addMember("value", "$T.class", jsonbValueAdapter)
-                                        .build()
-                        )
-                        .addAnnotation(
-                                AnnotationSpec.builder(XmlJavaTypeAdapter.class)
-                                        .addMember("value", "$T.class", xmlValueAdapter)
-                                        .build()
-                        )
+                        .addAnnotation(AnnotationSpec
+                                .builder(SuppressWarnings.class)
+                                .addMember("value", "$S", "ValidExternallyBoundObject")
+                                .build())
+                        .addAnnotation(AnnotationSpec
+                                .builder(XmlAccessorType.class)
+                                .addMember("value", "$T.NONE", XmlAccessType.class)
+                                .build())
+                        .addAnnotation(AnnotationSpec
+                                .builder(XmlType.class)
+                                .addMember("propOrder", getPropertyOrderValue())
+                                .build())
+                        .addAnnotation(AnnotationSpec
+                                .builder(XmlRootElement.class)
+                                .addMember("name", "$S", getNameNm())
+                                .build())
                         .addModifiers(Modifier.PUBLIC)
                         .superclass(hasNmAttr() ? ProvysNmObjectValue.class : ProvysObjectValue.class)
                         .addFields(getValueFields())
@@ -575,89 +572,6 @@ class GeneratorEntity {
                         .addMethods(getValueGetters())
                         .addMethod(getValueEquals())
                         .build())
-                .build();
-    }
-
-    @Nonnull
-    JavaFile generateJsonbValueAdapter() {
-        return  JavaFile.builder(packageNameImpl,
-                TypeSpec.classBuilder(jsonbValueAdapter)
-                        .addModifiers(Modifier.PUBLIC)
-                        .addAnnotation(generatedAnnotation)
-                        .addSuperinterface(ParameterizedTypeName.get(ClassName.get(JsonbAdapter.class),
-                                valueName, valueBuilderName))
-                        .addMethod(
-                                MethodSpec.methodBuilder("adaptToJson")
-                                        .addParameter(valueName, "value")
-                                        .addModifiers(Modifier.PUBLIC)
-                                        .returns(valueBuilderName)
-                                        .addAnnotation(Override.class)
-                                        .addAnnotation(Nonnull.class)
-                                        .addStatement("return new $L(value)", valueBuilderName)
-                                        .build()
-                        )
-                        .addMethod(
-                                MethodSpec.methodBuilder("adaptFromJson")
-                                        .addParameter(valueBuilderName, "builder")
-                                        .addModifiers(Modifier.PUBLIC)
-                                        .returns(valueName)
-                                        .addAnnotation(Override.class)
-                                        .addAnnotation(Nonnull.class)
-                                        .addStatement("return builder.build()")
-                                        .build()
-                        )
-                        .build())
-                .build();
-    }
-
-    @Nonnull
-    JavaFile generateXmlValueAdapter() {
-        return  JavaFile.builder(packageNameImpl,
-                TypeSpec.classBuilder(xmlValueAdapter)
-                        .addModifiers(Modifier.PUBLIC)
-                        .addAnnotation(generatedAnnotation)
-                        .superclass(ParameterizedTypeName.get(ClassName.get(XmlAdapter.class),
-                                valueBuilderName, valueName))
-                        .addMethod(
-                                MethodSpec.methodBuilder("marshal")
-                                        .addParameter(valueName, "value")
-                                        .addModifiers(Modifier.PUBLIC)
-                                        .returns(valueBuilderName)
-                                        .addAnnotation(Override.class)
-                                        .addAnnotation(Nonnull.class)
-                                        .addStatement("return new $L(value)", valueBuilderName)
-                                        .build()
-                        )
-                        .addMethod(
-                                MethodSpec.methodBuilder("unmarshal")
-                                        .addParameter(valueBuilderName, "builder")
-                                        .addModifiers(Modifier.PUBLIC)
-                                        .returns(valueName)
-                                        .addAnnotation(Override.class)
-                                        .addAnnotation(Nonnull.class)
-                                        .addStatement("return builder.build()")
-                                        .build()
-                        )
-                        .build())
-                .build();
-    }
-
-    @Nonnull
-    private String getValueBuilderJsonbPropertyOrderValue() {
-        var builder = new StringBuilder()
-                .append("{\"id\"");
-        for (var attr : cAttrs) {
-            builder.append(", \"").append(attr.getFieldName()).append('"');
-        }
-        return builder
-                .append("}")
-                .toString();
-    }
-
-    @Nonnull
-    private AnnotationSpec getValueBuilderJsonbPropertyOrderAnnotation() {
-        return AnnotationSpec.builder(JsonbPropertyOrder.class)
-                .addMember("value", getValueBuilderJsonbPropertyOrderValue())
                 .build();
     }
 
@@ -745,10 +659,6 @@ class GeneratorEntity {
                 .addModifiers(Modifier.PUBLIC)
                 .returns(BigInteger.class)
                 .addAnnotation(AnnotationSpec
-                        .builder(JsonbProperty.class)
-                        .addMember("value", "\"$L_ID\"", getNameNm())
-                        .build())
-                .addAnnotation(AnnotationSpec
                         .builder(XmlElement.class)
                         .addMember("name", "\"$L_ID\"", getNameNm())
                         .build())
@@ -756,59 +666,6 @@ class GeneratorEntity {
                 .addAnnotation(Nullable.class)
                 .addStatement("return super.getId()")
                 .build());
-        result.add(MethodSpec
-                .methodBuilder("setId")
-                .addModifiers(Modifier.PUBLIC)
-                .addParameter(BigInteger.class, "id")
-                .returns(valueBuilderName)
-                .addAnnotation(AnnotationSpec
-                        .builder(JsonbProperty.class)
-                        .addMember("value", "\"$L_ID\"", getNameNm())
-                        .build())
-                .addAnnotation(AnnotationSpec
-                        .builder(XmlElement.class)
-                        .addMember("name", "\"$L_ID\"", getNameNm())
-                        .build())
-                .addAnnotation(Override.class)
-                .addAnnotation(Nonnull.class)
-                .addStatement("return super.setId(id)")
-                .build());
-        if (hasNmAttr()) {
-            // needed as JSON-B 1.0 ignores properties from superclasses in JsonbPropertyOrder annotation
-            result.add(MethodSpec
-                    .methodBuilder("getNameNm")
-                    .addModifiers(Modifier.PUBLIC)
-                    .returns(String.class)
-                    .addAnnotation(AnnotationSpec
-                            .builder(JsonbProperty.class)
-                            .addMember("value", "\"NAME_NM\"")
-                            .build())
-                    .addAnnotation(AnnotationSpec
-                            .builder(XmlElement.class)
-                            .addMember("name", "\"NAME_NM\"")
-                            .build())
-                    .addAnnotation(Override.class)
-                    .addAnnotation(Nullable.class)
-                    .addStatement("return super.getNameNm()")
-                    .build());
-            result.add(MethodSpec
-                    .methodBuilder("setNameNm")
-                    .addModifiers(Modifier.PUBLIC)
-                    .addParameter(String.class, "nameNm")
-                    .returns(valueBuilderName)
-                    .addAnnotation(AnnotationSpec
-                            .builder(JsonbProperty.class)
-                            .addMember("value", "$S", "NAME_NM")
-                            .build())
-                    .addAnnotation(AnnotationSpec
-                            .builder(XmlElement.class)
-                            .addMember("name", "$S", "NAME_NM")
-                            .build())
-                    .addAnnotation(Override.class)
-                    .addAnnotation(Nonnull.class)
-                    .addStatement("return super.setNameNm(nameNm)")
-                    .build());
-        }
         for (var attr : cAttrs) {
             if (!attr.getNameNm().equals("NAME_NM") || !hasNmAttr()) {
                 result.add(MethodSpec.methodBuilder(attr.getGetterName())
@@ -831,7 +688,6 @@ class GeneratorEntity {
                 result.add(MethodSpec.methodBuilder(attr.getUpdGetterName())
                         .returns(boolean.class)
                         .addModifiers(Modifier.PUBLIC)
-                        .addAnnotation(JsonbTransient.class)
                         .addStatement("return $L", attr.getUpdFieldName())
                         .build()
                 );
@@ -939,9 +795,16 @@ class GeneratorEntity {
     private CodeBlock getValueBuilderToStringCode() {
         var result = CodeBlock.builder()
                 .add("return \"$LValueBuilder{\" +\n", getCProperName());
+        boolean first = true;
         for (var attr : cAttrs) {
             if (!attr.getNameNm().equals("NAME_NM") || !hasNmAttr()) {
-                result.add("        \", $L =", attr.getJavaName());
+                if (first) {
+                    first = false;
+                    result.add("        \"  ");
+                } else {
+                    result.add("        \", ");
+                }
+                result.add("$L =", attr.getJavaName());
                 if (attr.getDomain().getImplementingClass(true).equals(String.class)) {
                     result.add("'\" + $L + '\\'' +\n", attr.getFieldName());
                 } else if (attr.useObjectReference()) {
@@ -949,6 +812,7 @@ class GeneratorEntity {
                 } else {
                     result.add("\" + $L +\n", attr.getFieldName());
                 }
+                result.add("        \", $L = \" + $L +\n", attr.getUpdFieldName(), attr.getUpdFieldName());
             }
         }
         result.add("        \"} \" + super.toString();\n");
@@ -970,10 +834,13 @@ class GeneratorEntity {
         return JavaFile.builder(packageNameImplGen,
                 TypeSpec.classBuilder(valueBuilderName)
                         .addAnnotation(generatedAnnotation)
-                        .addAnnotation(getValueBuilderJsonbPropertyOrderAnnotation())
                         .addAnnotation(AnnotationSpec
                                 .builder(XmlRootElement.class)
                                 .addMember("name", '"' + getNameNm() + '"')
+                                .build())
+                        .addAnnotation(AnnotationSpec
+                                .builder(XmlAccessorType.class)
+                                .addMember("value", "$T.NONE", XmlAccessType.class)
                                 .build())
                         .addAnnotation(AnnotationSpec
                                 .builder(SuppressWarnings.class)

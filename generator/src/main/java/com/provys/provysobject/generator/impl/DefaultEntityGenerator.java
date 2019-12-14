@@ -70,47 +70,11 @@ public class DefaultEntityGenerator implements EntityGenerator {
 
     @Nonnull
     @Override
-    public String generateJsonbProxyAdapter(String entityNm, @Nullable String friendEntities) {
-        var entity = new GeneratorEntity(catalogueRepository,
-                catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
-                parseFriendEntities(friendEntities));
-        return entity.generateJsonbProxyAdapter().toString();
-    }
-
-    @Nonnull
-    @Override
-    public String generateXmlProxyAdapter(String entityNm, @Nullable String friendEntities) {
-        var entity = new GeneratorEntity(catalogueRepository,
-                catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
-                parseFriendEntities(friendEntities));
-        return entity.generateXmlProxyAdapter().toString();
-    }
-
-    @Nonnull
-    @Override
     public String generateValue(String entityNm, @Nullable String friendEntities) {
         var entity = new GeneratorEntity(catalogueRepository,
                 catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
                 parseFriendEntities(friendEntities));
         return entity.generateValue().toString();
-    }
-
-    @Nonnull
-    @Override
-    public String generateJsonbValueAdapter(String entityNm, @Nullable String friendEntities) {
-        var entity = new GeneratorEntity(catalogueRepository,
-                catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
-                parseFriendEntities(friendEntities));
-        return entity.generateJsonbValueAdapter().toString();
-    }
-
-    @Nonnull
-    @Override
-    public String generateXmlValueAdapter(String entityNm, @Nullable String friendEntities) {
-        var entity = new GeneratorEntity(catalogueRepository,
-                catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
-                parseFriendEntities(friendEntities));
-        return entity.generateXmlValueAdapter().toString();
     }
 
     @Nonnull

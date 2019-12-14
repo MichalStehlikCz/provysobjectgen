@@ -53,128 +53,12 @@ paths:
             text/plain:
               schema:
                 type: string
-  /entity/{entityNm}/geninterface:
+  /entity/{entityNm}/genproxy:
     get:
-      summary: Generate GenInterface
-      description: Generate generated ancestor of interface for accessing objects
-        of given type, containing attribute getters
-      operationId: getGenInterface
-      parameters:
-      - name: entityNm
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: friendEntities
-        in: query
-        schema:
-          type: string
-      responses:
-        default:
-          description: Class source
-          content:
-            text/plain:
-              schema:
-                type: string
-  /entity/{entityNm}/loaderbase:
-    get:
-      summary: Generate Loader Base class
-      description: Generate loader base class - common ancestor for loaders for given
-        entity.
-      operationId: getLoaderBase
-      parameters:
-      - name: entityNm
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: friendEntities
-        in: query
-        schema:
-          type: string
-      responses:
-        default:
-          description: Class source
-          content:
-            text/plain:
-              schema:
-                type: string
-  /entity/{entityNm}/dbloadrunner:
-    get:
-      summary: Generate DbLoadRunner class
-      description: Generate database load runner class - class that actually fetches
-        data from database and converts them to value objects.
-      operationId: getDbLoadRunner
-      parameters:
-      - name: entityNm
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: friendEntities
-        in: query
-        schema:
-          type: string
-      responses:
-        default:
-          description: Class source
-          content:
-            text/plain:
-              schema:
-                type: string
-  /entity/{entityNm}/loader:
-    get:
-      summary: Generate Loader Interface
-      description: Generate loader interface - interface defining requirements for
-        loader for given entity. Only used to initialize file if one doesn't exist,
-        is not refreshed later
-      operationId: getLoaderInterface
-      parameters:
-      - name: entityNm
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: friendEntities
-        in: query
-        schema:
-          type: string
-      responses:
-        default:
-          description: Class source
-          content:
-            text/plain:
-              schema:
-                type: string
-  /entity/{entityNm}/xmlvalueadapter:
-    get:
-      summary: Generate JAXB Value Adapter
-      description: Generate JAXB value adapter - translates value to value builder
-        for serialisation
-      operationId: getXmlValueAdapter
-      parameters:
-      - name: entityNm
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: friendEntities
-        in: query
-        schema:
-          type: string
-      responses:
-        default:
-          description: Class source
-          content:
-            text/plain:
-              schema:
-                type: string
-  /entity/{entityNm}/dbloader:
-    get:
-      summary: Generate DbLoader class
-      description: Generate database loader class - at the moment, does not generate
-        load by methods.
-      operationId: getDbLoader
+      summary: Generate GenProxy
+      description: Generate generated proxy ancestor, implementing interface of given
+        object in scope defined by generated interface
+      operationId: getGenProxy
       parameters:
       - name: entityNm
         in: path
@@ -237,12 +121,12 @@ paths:
             text/plain:
               schema:
                 type: string
-  /entity/{entityNm}/genproxy:
+  /entity/{entityNm}/geninterface:
     get:
-      summary: Generate GenProxy
-      description: Generate generated proxy ancestor, implementing interface of given
-        object in scope defined by generated interface
-      operationId: getGenProxy
+      summary: Generate GenInterface
+      description: Generate generated ancestor of interface for accessing objects
+        of given type, containing attribute getters
+      operationId: getGenInterface
       parameters:
       - name: entityNm
         in: path
@@ -260,12 +144,13 @@ paths:
             text/plain:
               schema:
                 type: string
-  /entity/{entityNm}/xmlproxyadapter:
+  /entity/{entityNm}/loader:
     get:
-      summary: Generate JAXB Proxy Adapter
-      description: Generate JAXB proxy adapter - translates proxy to value object
-        for serialisation
-      operationId: getXmlProxyAdapter
+      summary: Generate Loader Interface
+      description: Generate loader interface - interface defining requirements for
+        loader for given entity. Only used to initialize file if one doesn't exist,
+        is not refreshed later
+      operationId: getLoaderInterface
       parameters:
       - name: entityNm
         in: path
@@ -283,12 +168,58 @@ paths:
             text/plain:
               schema:
                 type: string
-  /entity/{entityNm}/jsonbproxyadapter:
+  /entity/{entityNm}/loaderbase:
     get:
-      summary: Generate JSON-B Proxy Adapter
-      description: Generate JSON-B proxy adapter - translates proxy to value object
-        for serialisation
-      operationId: getJsonbProxyAdapter
+      summary: Generate Loader Base class
+      description: Generate loader base class - common ancestor for loaders for given
+        entity.
+      operationId: getLoaderBase
+      parameters:
+      - name: entityNm
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: friendEntities
+        in: query
+        schema:
+          type: string
+      responses:
+        default:
+          description: Class source
+          content:
+            text/plain:
+              schema:
+                type: string
+  /entity/{entityNm}/dbloader:
+    get:
+      summary: Generate DbLoader class
+      description: Generate database loader class - at the moment, does not generate
+        load by methods.
+      operationId: getDbLoader
+      parameters:
+      - name: entityNm
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: friendEntities
+        in: query
+        schema:
+          type: string
+      responses:
+        default:
+          description: Class source
+          content:
+            text/plain:
+              schema:
+                type: string
+  /entity/{entityNm}/dbloadrunner:
+    get:
+      summary: Generate DbLoadRunner class
+      description: Generate database load runner class - class that actually fetches
+        data from database and converts them to value objects.
+      operationId: getDbLoadRunner
       parameters:
       - name: entityNm
         in: path
@@ -312,6 +243,29 @@ paths:
       description: Generate JSON-B value adapter - translates value to value builder
         for serialisation
       operationId: getJsonbValueAdapter
+      parameters:
+      - name: entityNm
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: friendEntities
+        in: query
+        schema:
+          type: string
+      responses:
+        default:
+          description: Class source
+          content:
+            text/plain:
+              schema:
+                type: string
+  /entity/{entityNm}/jsonbproxyadapter:
+    get:
+      summary: Generate JSON-B Proxy Adapter
+      description: Generate JSON-B proxy adapter - translates proxy to value object
+        for serialisation
+      operationId: getJsonbProxyAdapter
       parameters:
       - name: entityNm
         in: path
