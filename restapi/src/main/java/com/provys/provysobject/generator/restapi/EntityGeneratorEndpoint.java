@@ -62,6 +62,26 @@ public class EntityGeneratorEndpoint {
     }
 
     @GET
+    @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/meta")
+    @Produces("text/plain")
+    @Operation(
+            summary = "Generate Meta class",
+            description = "Generate meta class, providing statical meta-information for type",
+            responses = {
+                    @ApiResponse(
+                            description = "Class source",
+                            content = @Content(
+                                    mediaType = "text/plain",
+                                    schema = @Schema(
+                                            implementation = String.class,
+                                            maxLength = 30
+                                    )))})
+    public Response getMeta(@PathParam("entityNm") String entityNm,
+                                 @QueryParam("friendEntities") @Nullable String friendEntities) {
+        return Response.ok(entityGenerator.generateMeta(entityNm, friendEntities)).build();
+    }
+
+    @GET
     @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/genproxy")
     @Produces("text/plain")
     @Operation(
@@ -104,6 +124,26 @@ public class EntityGeneratorEndpoint {
     }
 
     @GET
+    @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/proxyserializationconverter")
+    @Produces("text/plain")
+    @Operation(
+            summary = "Generate Proxy Serialization Converter",
+            description = "Generate Jackson converter used for proxy serialization via value class",
+            responses = {
+                    @ApiResponse(
+                            description = "Class source",
+                            content = @Content(
+                                    mediaType = "text/plain",
+                                    schema = @Schema(
+                                            implementation = String.class,
+                                            maxLength = 30
+                                    )))})
+    public Response getProxySerializationConverter(@PathParam("entityNm") String entityNm,
+                             @QueryParam("friendEntities") @Nullable String friendEntities) {
+        return Response.ok(entityGenerator.generateProxySerializationConverter(entityNm, friendEntities)).build();
+    }
+
+    @GET
     @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/value")
     @Produces("text/plain")
     @Operation(
@@ -141,6 +181,27 @@ public class EntityGeneratorEndpoint {
     public Response getValueBuilder(@PathParam("entityNm") String entityNm,
                              @QueryParam("friendEntities") @Nullable String friendEntities) {
         return Response.ok(entityGenerator.generateValueBuilder(entityNm, friendEntities)).build();
+    }
+
+    @GET
+    @Path("/{entityNm : [a-zA-Z][a-zA-Z_0-9]*}/valuebuilderserializer")
+    @Produces("text/plain")
+    @Operation(
+            summary = "Generate Value Builder Serializer",
+            description = "Generate Jackson serializer for value builder class - ensures that serialization contains" +
+                    " fields with upd flag set",
+            responses = {
+                    @ApiResponse(
+                            description = "Class source",
+                            content = @Content(
+                                    mediaType = "text/plain",
+                                    schema = @Schema(
+                                            implementation = String.class,
+                                            maxLength = 30
+                                    )))})
+    public Response getValueBuilderSerializer(@PathParam("entityNm") String entityNm,
+                                    @QueryParam("friendEntities") @Nullable String friendEntities) {
+        return Response.ok(entityGenerator.generateValueBuilderSerializer(entityNm, friendEntities)).build();
     }
 
     @GET

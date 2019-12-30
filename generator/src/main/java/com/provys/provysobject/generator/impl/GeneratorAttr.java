@@ -5,7 +5,6 @@ import com.squareup.javapoet.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.json.bind.annotation.JsonbProperty;
 import javax.lang.model.element.Modifier;
 import javax.xml.bind.annotation.XmlElement;
 import java.math.BigInteger;
@@ -189,10 +188,6 @@ class GeneratorAttr implements Attr {
     @Nonnull
     FieldSpec getBuilderFieldSpec() {
         return FieldSpec.builder(getBuilderFieldTypeName(), getJavaName(), Modifier.PRIVATE)
-                .addAnnotation(AnnotationSpec
-                        .builder(XmlElement.class)
-                        .addMember("name", '"' + attr.getNameNm() + '"')
-                        .build())
                 .addAnnotation(Nullable.class)
                 .build();
     }

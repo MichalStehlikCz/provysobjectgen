@@ -1,8 +1,21 @@
 package com.provys.provysobject.generator.impl;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.util.StdConverter;
 import com.provys.catalogue.api.*;
+import com.provys.common.datatype.DtUid;
 import com.provys.common.exception.InternalException;
+import com.provys.provysdb.dbcontext.DbResultSet;
+import com.provys.provysdb.dbcontext.DbRowMapper;
+import com.provys.provysdb.dbsqlbuilder.DbSql;
+import com.provys.provysdb.dbsqlbuilder.SqlAdmin;
+import com.provys.provysdb.sqlbuilder.Condition;
+import com.provys.provysdb.sqlbuilder.SqlColumnT;
+import com.provys.provysdb.sqlbuilder.SqlTableAlias;
 import com.provys.provysobject.ProvysNmObject;
 import com.provys.provysobject.ProvysObject;
 import com.provys.provysobject.impl.*;
@@ -17,6 +30,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.lang.model.element.Modifier;
 import javax.xml.bind.annotation.*;
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -56,13 +71,19 @@ class GeneratorEntity {
     @Nonnull
     private final ClassName interfaceName;
     @Nonnull
+    private final ClassName metaName;
+    @Nonnull
     private final ClassName genProxyName;
     @Nonnull
     private final ClassName proxyName;
     @Nonnull
+    private final ClassName proxySerializationConverter;
+    @Nonnull
     private final ClassName valueName;
     @Nonnull
     private final ClassName valueBuilderName;
+    @Nonnull
+    private final ClassName valueBuilderSerializerName;
     @Nonnull
     private final ClassName loaderInterfaceName;
     @Nonnull
@@ -98,11 +119,16 @@ class GeneratorEntity {
         this.managerName = ClassName.get(packageNameApi, entityName + "Manager");
         this.managerImplName = ClassName.get(packageNameImpl, entityName + "ManagerImpl");
         this.genInterfaceName =  ClassName.get(packageNameApiGen, "Gen" + entityName);
-        this.interfaceName =  ClassName.get(packageNameApi, entityName);
+        this.interfaceName = ClassName.get(packageNameApi, entityName);
+        this.metaName = ClassName.get(packageNameApi, entityName + "Meta");
         this.genProxyName = ClassName.get(packageNameImplGen, "Gen" + entityName + "Proxy");
         this.proxyName = ClassName.get(packageNameImpl, entityName + "Proxy");
+        this.proxySerializationConverter = ClassName.get(packageNameImpl, "Gen" + entityName +
+                "ProxySerializationConverter");
         this.valueName = ClassName.get(packageNameImplGen, "Gen" + entityName + "Value");
         this.valueBuilderName = ClassName.get(packageNameImplGen, "Gen" + entityName + "ValueBuilder");
+        this.valueBuilderSerializerName = ClassName.get(packageNameImplGen, "Gen" + entityName +
+                "ValueBuilderSerializer");
         this.loaderInterfaceName = ClassName.get(packageNameImpl, entityName + "Loader");
         this.loaderBaseName = ClassName.get(packageNameImpl, entityName + "LoaderBase");
         this.dbLoaderName = ClassName.get(packageNameDbLoader, entityName + "DbLoader");
@@ -248,11 +274,48 @@ class GeneratorEntity {
                 .build();
     }
 
+    List<FieldSpec> getMetaFields() {
+        var result = new ArrayList<FieldSpec>(cAttrs.size());
+        for (var attr : cAttrs) {
+            result.add(FieldSpec
+                    .builder(
+                            ParameterizedTypeName.get(SqlColumnT.class, attr.getDomain().getImplementingClass(true)),
+                            attr.getNameNm())
+                    .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                    .initializer("column(TABLE_ALIAS, name($S), $T.class)", attr.getNameNm().toLowerCase(),
+                            attr.getDomain().getImplementingClass(true))
+                    .build());
+        }
+        return result;
+    }
+
+    @Nonnull
+    JavaFile generateMeta() {
+        return JavaFile.builder(packageNameApiGen,
+                TypeSpec.classBuilder(metaName)
+                        .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                        .addField(FieldSpec
+                                .builder(SqlTableAlias.class, "TABLE_ALIAS")
+                                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                                .initializer("tableAlias($S)", "al" + getNameNm().toLowerCase())
+                                .build())
+                        .addField(FieldSpec
+                                .builder(ParameterizedTypeName.get(SqlColumnT.class, DtUid.class),
+                                        getNameNm() + "_ID")
+                                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                                .initializer("column(TABLE_ALIAS, name($S), $T.class)", getNameNm().toLowerCase() + "_id",
+                                        DtUid.class)
+                                .build())
+                        .addFields(getMetaFields())
+                        .build())
+                .build();
+    }
+
     @Nonnull
     private MethodSpec getGenProxyConstructor() {
         return MethodSpec.constructorBuilder()
                 .addParameter(managerImplName, "manager")
-                .addParameter(BigInteger.class, "id")
+                .addParameter(DtUid.class, "id")
                 .addStatement("super(manager, id)")
                 .build();
     }
@@ -277,17 +340,6 @@ class GeneratorEntity {
     @Nonnull
     private Collection<MethodSpec> getGenProxyGetters() {
         var result = new ArrayList<MethodSpec>(cAttrs.size() * 2);
-        // needed to add proper element name for JAXB serialisation
-        result.add(MethodSpec
-                .methodBuilder("getId")
-                .returns(BigInteger.class)
-                .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(AnnotationSpec
-                        .builder(XmlElement.class)
-                        .addMember("name", "$S", getNameNm() + "_ID")
-                        .build())
-                .addStatement("return super.getId()")
-                .build());
         for (var attr : cAttrs) {
             if (!attr.getNameNm().equals("NAME_NM") || !hasNmAttr()) {
                 if (attr.useObjectReference()) {
@@ -298,10 +350,6 @@ class GeneratorEntity {
                 }
                 result.add(attr.getGetterBuilder()
                         .addModifiers(Modifier.PUBLIC)
-                        .addAnnotation(AnnotationSpec
-                                .builder(XmlElement.class)
-                                .addMember("name", '"' + attr.getNameNm() + '"')
-                                .build())
                         .addStatement("return validateValueObject().$L()", attr.getGetterName())
                         .build());
             }
@@ -314,10 +362,6 @@ class GeneratorEntity {
         return JavaFile.builder(packageNameImplGen,
                 TypeSpec.classBuilder(genProxyName)
                         .addAnnotation(generatedAnnotation)
-                        .addAnnotation(AnnotationSpec
-                                .builder(XmlAccessorType.class)
-                                .addMember("value", "$T.NONE", XmlAccessType.class)
-                                .build())
                         .addModifiers(Modifier.ABSTRACT)
                         .superclass(ParameterizedTypeName.get(
                                 hasNmAttr() ? ClassName.get(ProvysNmObjectProxyImpl.class) :
@@ -330,26 +374,10 @@ class GeneratorEntity {
     }
 
     @Nonnull
-    private MethodSpec getProxyJaxbFakeCreate() {
-        return MethodSpec.methodBuilder("jaxbFakeCreate")
-                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                .addAnnotation(AnnotationSpec
-                        .builder(SuppressWarnings.class)
-                        .addMember("value", "$S", "unused")
-                        .build())
-                .returns(proxyName)
-                .addStatement("throw new $T(LOG, \"Proxy cannot be unmarshalled from XML\")", InternalException.class)
-                .addJavadoc("Formally needed to allow jaxb marshalling")
-                .addJavadoc("")
-                .addJavadoc("@return nothing, it is never called")
-                .build();
-    }
-
-    @Nonnull
     private MethodSpec getProxyConstructor() {
         return MethodSpec.constructorBuilder()
                 .addParameter(managerImplName, "manager")
-                .addParameter(BigInteger.class, "id")
+                .addParameter(DtUid.class, "id")
                 .addStatement("super(manager, id)")
                 .build();
     }
@@ -382,19 +410,8 @@ class GeneratorEntity {
                 TypeSpec.classBuilder(proxyName)
                         .addModifiers(Modifier.PUBLIC)
                         .addAnnotation(AnnotationSpec
-                                .builder(SuppressWarnings.class)
-                                .addMember("value", "$S", "ValidExternallyBoundObject")
-                                .build())
-                        .addAnnotation(AnnotationSpec
-                                .builder(XmlAccessorType.class)
-                                .addMember("value", "$T.NONE", XmlAccessType.class)
-                                .build())
-                        .addAnnotation(AnnotationSpec
-                                .builder(XmlType.class)
-                                .addMember("name", "$S", "")
-                                .addMember("factoryClass", "$T.class", proxyName)
-                                .addMember("factoryMethod", "$S", "jaxbFakeCreate")
-                                .addMember("propOrder", getPropertyOrderValue())
+                                .builder(JsonSerialize.class)
+                                .addMember("converter", "$T.class", proxySerializationConverter)
                                 .build())
                         .addAnnotation(AnnotationSpec
                                 .builder(XmlRootElement.class)
@@ -407,10 +424,26 @@ class GeneratorEntity {
                                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
                                 .initializer("$T.getLogger($T.class)", LogManager.class, proxyName)
                                 .build())
-                        .addMethod(getProxyJaxbFakeCreate())
                         .addMethod(getProxyConstructor())
                         .addMethod(getProxySelf())
                         .addMethod(getProxySelfAsObject())
+                        .build())
+                .build();
+    }
+
+    @Nonnull
+    JavaFile generateProxySerializationConverter() {
+        return JavaFile.builder(packageNameImpl,
+                TypeSpec.classBuilder(proxySerializationConverter)
+                        .superclass(ParameterizedTypeName.get(ClassName.get(StdConverter.class), proxyName, valueName))
+                        .addMethod(MethodSpec
+                                .methodBuilder("convert")
+                                .addAnnotation(Override.class)
+                                .addModifiers(Modifier.PUBLIC)
+                                .addParameter(proxyName, "proxy")
+                                .returns(valueName)
+                                .addStatement("return proxy.validateValueObject()")
+                                .build())
                         .build())
                 .build();
     }
@@ -434,7 +467,7 @@ class GeneratorEntity {
                 .addAnnotation(AnnotationSpec
                         .builder(JsonCreator.class).build())
                 .addParameter(ParameterSpec
-                        .builder(BigInteger.class, "id")
+                        .builder(DtUid.class, "id")
                         .addAnnotation(AnnotationSpec
                                 .builder(JsonProperty.class)
                                 .addMember("value", "$S", getNameNm() + "_ID")
@@ -472,7 +505,7 @@ class GeneratorEntity {
         // needed to add proper element name for JAXB serialisation
         result.add(MethodSpec
                 .methodBuilder("getId")
-                .returns(BigInteger.class)
+                .returns(DtUid.class)
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(AnnotationSpec
                         .builder(XmlElement.class)
@@ -657,7 +690,7 @@ class GeneratorEntity {
         result.add(MethodSpec
                 .methodBuilder("getId")
                 .addModifiers(Modifier.PUBLIC)
-                .returns(BigInteger.class)
+                .returns(DtUid.class)
                 .addAnnotation(AnnotationSpec
                         .builder(XmlElement.class)
                         .addMember("name", "\"$L_ID\"", getNameNm())
@@ -671,6 +704,10 @@ class GeneratorEntity {
                 result.add(MethodSpec.methodBuilder(attr.getGetterName())
                         .returns(attr.getBuilderFieldTypeName())
                         .addModifiers(Modifier.PUBLIC)
+                        .addAnnotation(AnnotationSpec
+                                .builder(XmlElement.class)
+                                .addMember("name", '"' + attr.getNameNm() + '"')
+                                .build())
                         .addAnnotation(Nullable.class)
                         .addStatement("return $L", attr.getJavaName())
                         .build()
@@ -764,6 +801,7 @@ class GeneratorEntity {
                     eqStatement.add(" &&\n        ");
                 }
                 eqStatement.add("$1T.equals($2L, that.$2L)", Objects.class, attr.getFieldName());
+                eqStatement.add(" &&\n        ($1L == that.$1L)", attr.getUpdFieldName());
             }
         }
         return eqStatement.add(";\n").build();
@@ -843,6 +881,10 @@ class GeneratorEntity {
                                 .addMember("value", "$T.NONE", XmlAccessType.class)
                                 .build())
                         .addAnnotation(AnnotationSpec
+                                .builder(JsonSerialize.class)
+                                .addMember("using", "$T.class", valueBuilderSerializerName)
+                                .build())
+                        .addAnnotation(AnnotationSpec
                                 .builder(SuppressWarnings.class)
                                 .addMember("value",
                                         "{\"WeakerAccess\", \"unused\", \"UnusedReturnValue\"}")
@@ -865,6 +907,88 @@ class GeneratorEntity {
                         .addMethod(getValueBuilderBuild())
                         .addMethod(getValueBuilderEquals())
                         .addMethod(getValueBuilderToString())
+                        .build())
+                .build();
+    }
+
+    private void appendValueBuilderSerializerSerializeField(CodeBlock.Builder builder, GeneratorAttr attr) {
+        builder.addStatement("var value = builder.$L()", attr.getGetterName());
+        builder.beginControlFlow("if (value == null)")
+                .addStatement("generator.writeNullField($S)", attr.getNameNm())
+                .nextControlFlow("else");
+        if (attr.getDomain().getImplementingClass(true) == String.class) {
+            builder.addStatement("generator.writeStringField($S, value)", attr.getNameNm());
+        } else if ((attr.getDomain().getImplementingClass(true) == Byte.class) ||
+                (attr.getDomain().getImplementingClass(true) == Short.class) ||
+                (attr.getDomain().getImplementingClass(true) == Integer.class) ||
+                (attr.getDomain().getImplementingClass(true) == Long.class) ||
+                (attr.getDomain().getImplementingClass(true) == Float.class) ||
+                (attr.getDomain().getImplementingClass(true) == Double.class) ||
+                (attr.getDomain().getImplementingClass(true) == BigDecimal.class)) {
+            builder.addStatement("generator.writeNumberField($S, value)", attr.getNameNm());
+        } else if (attr.getDomain().getImplementingClass(true) == DtUid.class) {
+            // overload of writeNumberField for DtUid is missing...
+            builder.addStatement("generator.writeFieldName($S)", attr.getNameNm());
+            builder.addStatement("generator.writeNumber(value)");
+        } else if (attr.getDomain().getImplementingClass(true) == Boolean.class) {
+            builder.addStatement("generator.writeBooleanField($S, value)", attr.getNameNm());
+        } else {
+            builder.addStatement("generator.writeObjectField($S, value)", attr.getNameNm());
+        }
+        builder.endControlFlow();
+    }
+
+    @Nonnull
+    private CodeBlock getValueBuilderSerializerSerializeBody() {
+        var result = CodeBlock.builder()
+                .addStatement("generator.writeStartObject()")
+                .beginControlFlow("if (builder.getId() != null)")
+                .addStatement("generator.writeFieldName($S)", getNameNm() + "_ID")
+                .addStatement("generator.writeNumber(builder.getId())")
+                .endControlFlow();
+        if (hasNmAttr()) {
+            // internal name does not have corresponding upd flag...
+            result.beginControlFlow("if (builder.getNameNm() != null)")
+                    .addStatement("generator.writeStringField(\"NAME_NM\", builder.getNameNm())")
+                    .endControlFlow();
+        }
+        for (var attr : cAttrs) {
+            if (!attr.getNameNm().equals("NAME_NM") || !hasNmAttr()) {
+                result.beginControlFlow("if (builder.$L())", attr.getUpdGetterName());
+                appendValueBuilderSerializerSerializeField(result, attr);
+                result.endControlFlow();
+            }
+        }
+        return result.addStatement("generator.writeEndObject()")
+                .build();
+    }
+
+    @Nonnull
+    private MethodSpec getValueBuilderSerializerSerialize() {
+        return MethodSpec.methodBuilder("serialize")
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .addAnnotation(AnnotationSpec
+                        .builder(SuppressWarnings.class)
+                        .addMember("value", "$S", "squid:S3776")
+                        .build())
+                .addParameter(valueBuilderName, "builder")
+                .addParameter(JsonGenerator.class, "generator")
+                .addParameter(SerializerProvider.class, "serializerProvider")
+                .addException(IOException.class)
+                .addCode(getValueBuilderSerializerSerializeBody())
+                .build();
+    }
+
+    @Nonnull
+    JavaFile generateValueBuilderSerializer() {
+        return JavaFile.builder(packageNameImplGen,
+                TypeSpec.classBuilder(valueBuilderSerializerName)
+                        .addAnnotation(generatedAnnotation)
+                        .superclass(ParameterizedTypeName.get(
+                                ClassName.get(JsonSerializer.class),
+                                valueBuilderName))
+                        .addMethod(getValueBuilderSerializerSerialize())
                         .build())
                 .build();
     }
@@ -896,37 +1020,6 @@ class GeneratorEntity {
     }
 
     @Nonnull
-    private TypeName[] getDbLoaderRecordTypeParams() {
-        var result = new TypeName[cAttrs.size() + 1];
-        int pos = 0;
-        result[pos++] = ClassName.get(BigInteger.class);
-        for (var attr : cAttrs) {
-            result[pos++] = ClassName.get(attr.getDomain().getImplementingClass(true));
-        }
-        return result;
-    }
-
-    @Nonnull
-    private TypeName getDbLoaderRecordType() {
-        if (cAttrs.size() >= 22) {
-            return ClassName.get("org.jooq", "Record");
-        }
-        return ParameterizedTypeName.get(
-                ClassName.get("org.jooq", "Record" + (cAttrs.size() + 1)),
-                getDbLoaderRecordTypeParams());
-    }
-
-    @Nonnull
-    private FieldSpec getDbContextField() {
-        return FieldSpec.builder(
-                ClassName.get("com.provys.provysdb", "ProvysDbContext"),
-                "dbContext")
-                .addAnnotation(Nonnull.class)
-                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
-                .build();
-    }
-
-    @Nonnull
     private MethodSpec getDbLoaderMethod(@Nullable GeneratorAttr attr) {
         return MethodSpec.methodBuilder("getLoadRunnerBy" +
                 ((attr == null) ? "Id" : attr.getInitCapJavaName()))
@@ -935,13 +1028,12 @@ class GeneratorEntity {
                 .addModifiers(Modifier.PROTECTED)
                 .returns(dbLoadRunnerName)
                 .addParameter(managerImplName, "manager")
-                .addParameter((attr == null) ? BigInteger.class : attr.getDomain().getImplementingClass(false),
+                .addParameter((attr == null) ? DtUid.class : attr.getDomain().getImplementingClass(false),
                         (attr == null) ? "id" : attr.getJavaName())
                 .addStatement(
-                        "return new $LDbLoadRunner(manager, dbContext, $T.field($S, $T.class).eq($L))",
-                        getCProperName(), ClassName.get("org.jooq.impl", "DSL"),
-                        (attr == null) ? getNameNm() + "_ID" : attr.getNameNm(),
-                        (attr == null) ? BigInteger.class : attr.getDomain().getImplementingClass(true),
+                        "return new $LDbLoadRunner(manager, dbSql, dbSql.eq($T.$L, dbSql.bind($S, $L)))",
+                        getCProperName(), metaName, (attr == null) ? getNameNm() + "_ID" : attr.getNameNm(),
+                        ((attr == null) ? getNameNm() + "_ID" : attr.getNameNm()).toLowerCase(),
                         (attr == null) ? "id" : attr.getJavaName())
                 .build();
     }
@@ -955,7 +1047,7 @@ class GeneratorEntity {
                 .returns(dbLoadRunnerName)
                 .addParameter(managerImplName, "manager")
                 .addStatement(
-                        "return new $LDbLoadRunner(manager, dbContext, null)", getCProperName())
+                        "return new $LDbLoadRunner(manager, dbSql, null)", getCProperName())
                 .build();
     }
 
@@ -978,15 +1070,16 @@ class GeneratorEntity {
                 TypeSpec.classBuilder(dbLoaderName)
                         .addAnnotation(ApplicationScoped.class)
                         .addModifiers(Modifier.PUBLIC)
-                        .superclass(ParameterizedTypeName.get(
-                                loaderBaseName, getDbLoaderRecordType()))
-                        .addField(getDbContextField())
+                        .superclass(loaderBaseName)
+                        .addField(FieldSpec
+                                .builder(SqlAdmin.class,"dbSql")
+                                .addAnnotation(Nonnull.class)
+                                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                                .build())
                         .addMethod(MethodSpec.constructorBuilder()
                                 .addAnnotation(Inject.class)
-                                .addParameter(
-                                        ClassName.get("com.provys.provysdb", "ProvysDbContext"),
-                                        "dbContext")
-                                .addStatement("this.dbContext = $T.requireNonNull(dbContext)", Objects.class)
+                                .addParameter(SqlAdmin.class,"dbSql")
+                                .addStatement("this.dbSql = $T.requireNonNull(dbSql)", Objects.class)
                                 .build())
                         .addMethods(getDbLoaderMethods())
                         .build())
@@ -994,69 +1087,40 @@ class GeneratorEntity {
     }
 
     @Nonnull
-    private MethodSpec getDbLoadRunnerSelect() {
-        var dsl = ClassName.get("org.jooq.impl", "DSL");
-        var builder = MethodSpec.methodBuilder("select")
-                .addAnnotation(Nonnull.class)
-                .addAnnotation(Override.class)
-                .addModifiers(Modifier.PROTECTED)
-                .returns(ParameterizedTypeName.get(ClassName.get(List.class), getDbLoaderRecordType()))
-                .addStatement("$T result", ParameterizedTypeName.get(ClassName.get(List.class),
-                        getDbLoaderRecordType()))
-                .beginControlFlow("try (var dsl = dbContext.createDSL())")
-                .addCode("result = dsl.select($T.field($S, $T.class)", dsl, getNameNm() + "_ID", BigInteger.class);
+    private CodeBlock getDbLoadRunnerSelectBody() {
+        var result = CodeBlock.builder()
+                .add("return dbSql.select()\n")
+                .add("        .from(dbSql.name($S), $L.TABLE_ALIAS)\n",
+                        getTable().orElseThrow().toLowerCase(), metaName)
+                .add("        .column($S, $T.class)\n", (getNameNm() + "_id").toLowerCase(), DtUid.class);
         for (var attr : cAttrs) {
-            builder.addCode(", $T.field($S, $T.class)", dsl, attr.getNameNm(),
+            result.add("        .column($S, $T.class)\n", attr.getNameNm().toLowerCase(),
                     attr.getDomain().getImplementingClass(true));
         }
-        return builder.addCode(")\n")
-                .addCode("        .from($T.table($S))\n", dsl, getTable()
-                        .orElseThrow(() -> new InternalException(LOG, "Table not specified in entity " + getNameNm())))
-                .addCode("        .where(condition == null ? $T.noCondition() : condition)\n", dsl)
-                .addCode("        .fetch();\n")
-                .endControlFlow()
-                .addStatement("return result")
-                .build();
+        result.add("        .where(condition)\n")
+                .add("        .prepare()\n")
+                .add("        .fetch(MAPPER);\n");
+        return result.build();
     }
 
     @Nonnull
-    private CodeBlock getDbLoadRunnerCreateValueObjectBody() {
-        var builder = CodeBlock.builder()
-                .add("return new $T(getId(sourceObject)", valueName);
+    private MethodSpec getDbLoadRunnerMap() {
+        var result = MethodSpec
+                .methodBuilder("map")
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(DbResultSet.class, "dbResultSet")
+                .addParameter(long.class, "line")
+                .returns(valueName);
+        result.addCode("return new $T()\n", valueBuilderName);
+        result.addCode("    .setId(dbResultSet.getNonnullDtUid(1))\n");
+        int col = 2;
         for (var attr : cAttrs) {
-            if (attr.useObjectReference()) {
-                if (attr.getMandatory()) {
-                    builder.add(", getManager().getRepository().get$LManager()." +
-                                    "getOrAddById(sourceObject.get($S, $T.class))",
-                            catalogueRepository.getEntityManager().getByNameNm(attr.getSubdomainNm().orElseThrow())
-                                    .getNameNm(), attr.getNameNm(), BigInteger.class);
-                } else {
-                    builder.add(", (sourceObject.get($S, $T.class) == null) ? " +
-                                    "null : getManager().getRepository().get$LManager()." +
-                                    "getOrAddById(sourceObject.get($S, $T.class))",
-                            catalogueRepository.getEntityManager().getByNameNm(attr.getSubdomainNm().orElseThrow())
-                                    .getNameNm(), attr.getNameNm(), BigInteger.class);
-                }
-            } else {
-                builder.add(", sourceObject.get($S, $T.class)", attr.getNameNm(),
-                        attr.getDomain().getImplementingClass(true));
-            }
+            result.addCode("    .$L(dbResultSet.get$L$L($L))\n",
+                    attr.getSetterName(), attr.getMandatory() ? "Nonnull" : "Nullable",
+                    attr.getDomain().getImplementingClass(true).getSimpleName(), col++);
         }
-        return builder.add(")").build();
-
-    }
-
-    @Nonnull
-    private MethodSpec getDbLoadRunnerCreateValueObject() {
-        return MethodSpec.methodBuilder("createValueObject")
-                .addAnnotation(Nonnull.class)
-                .addAnnotation(Override.class)
-                .addModifiers(Modifier.PROTECTED)
-                .returns(valueName)
-                .addParameter(getDbLoaderRecordType(),
-                        "sourceObject")
-                .addStatement(getDbLoadRunnerCreateValueObjectBody())
-                .build();
+        result.addCode("    .build();\n");
+        return result.build();
     }
 
     @Nonnull
@@ -1065,39 +1129,48 @@ class GeneratorEntity {
                 TypeSpec.classBuilder(dbLoadRunnerName)
                         .superclass(ParameterizedTypeName.get(
                                 ClassName.get(ProvysObjectLoadRunner.class),
-                                interfaceName, valueName, proxyName, managerImplName,
-                                getDbLoaderRecordType()))
-                        .addField(getDbContextField())
-                        .addField(FieldSpec.builder(ClassName.get("org.jooq", "Condition"),
-                                "condition")
+                                interfaceName, valueName, proxyName, managerImplName))
+                        .addField(FieldSpec
+                                .builder(dbLoadRunnerName.nestedClass(getCProperName() + "DbMapper"), "MAPPER")
+                                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                                .initializer("new $LDbMapper()", getCProperName())
+                                .build())
+                        .addField(FieldSpec
+                                .builder(DbSql.class, "dbSql")
+                                .addAnnotation(Nonnull.class)
+                                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                                .build())
+                        .addField(FieldSpec.builder(Condition.class,"condition")
                                 .addAnnotation(Nullable.class)
                                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
                                 .build())
                         .addMethod(MethodSpec.constructorBuilder()
                                 .addParameter(managerImplName, "manager")
-                                .addParameter(
-                                        ClassName.get("com.provys.provysdb", "ProvysDbContext"),
-                                        "dbContext")
-                                .addParameter(ParameterSpec.builder(
-                                        ClassName.get("org.jooq", "Condition"),
-                                        "condition")
+                                .addParameter(DbSql.class,"dbSql")
+                                .addParameter(ParameterSpec
+                                        .builder(Condition.class,"condition")
                                         .addAnnotation(Nullable.class)
                                         .build())
                                 .addStatement("super(manager)")
-                                .addStatement("this.dbContext = $T.requireNonNull(dbContext)", Objects.class)
+                                .addStatement("this.dbSql = $T.requireNonNull(dbSql)", Objects.class)
                                 .addStatement("this.condition = condition")
                                 .build())
-                        .addMethod(getDbLoadRunnerSelect())
-                        .addMethod(MethodSpec.methodBuilder("getId")
+                        .addMethod(MethodSpec
+                                .methodBuilder("select")
                                 .addAnnotation(Nonnull.class)
                                 .addAnnotation(Override.class)
                                 .addModifiers(Modifier.PROTECTED)
-                                .returns(BigInteger.class)
-                                .addParameter(getDbLoaderRecordType(),"sourceObject")
-                                .addStatement("return sourceObject.get($S, $T.class)", getNameNm() + "_ID",
-                                        BigInteger.class)
+                                .returns(ParameterizedTypeName.get(ClassName.get(List.class), valueName))
+                                .addCode(getDbLoadRunnerSelectBody())
+                                .build()
+                        )
+                        .addType(TypeSpec
+                                .classBuilder(getCProperName() + "DbMapper")
+                                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                                .addSuperinterface(
+                                        ParameterizedTypeName.get(ClassName.get(DbRowMapper.class), valueName))
+                                .addMethod(getDbLoadRunnerMap())
                                 .build())
-                        .addMethod(getDbLoadRunnerCreateValueObject())
                         .build())
                 .build();
     }

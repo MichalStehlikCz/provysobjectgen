@@ -52,6 +52,15 @@ public class DefaultEntityGenerator implements EntityGenerator {
 
     @Nonnull
     @Override
+    public String generateMeta(String entityNm, @Nullable String friendEntities) {
+        var entity = new GeneratorEntity(catalogueRepository,
+                catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
+                parseFriendEntities(friendEntities));
+        return entity.generateMeta().toString();
+    }
+
+    @Nonnull
+    @Override
     public String generateGenProxy(String entityNm, @Nullable String friendEntities) {
         var entity = new GeneratorEntity(catalogueRepository,
                 catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
@@ -70,6 +79,15 @@ public class DefaultEntityGenerator implements EntityGenerator {
 
     @Nonnull
     @Override
+    public String generateProxySerializationConverter(String entityNm, @Nullable String friendEntities) {
+        var entity = new GeneratorEntity(catalogueRepository,
+                catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
+                parseFriendEntities(friendEntities));
+        return entity.generateProxySerializationConverter().toString();
+    }
+
+    @Nonnull
+    @Override
     public String generateValue(String entityNm, @Nullable String friendEntities) {
         var entity = new GeneratorEntity(catalogueRepository,
                 catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
@@ -84,6 +102,15 @@ public class DefaultEntityGenerator implements EntityGenerator {
                 catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
                 parseFriendEntities(friendEntities));
         return entity.generateValueBuilder().toString();
+    }
+
+    @Nonnull
+    @Override
+    public String generateValueBuilderSerializer(String entityNm, @Nullable String friendEntities) {
+        var entity = new GeneratorEntity(catalogueRepository,
+                catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
+                parseFriendEntities(friendEntities));
+        return entity.generateValueBuilderSerializer().toString();
     }
 
     @Nonnull
