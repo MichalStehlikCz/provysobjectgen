@@ -40,6 +40,10 @@
             <artifactId>dbsqlbuilder</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.provys.provysdb</groupId>
+            <artifactId>sqlbuilder</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.provys.provysobject</groupId>
             <artifactId>provysobject-api</artifactId>
         </dependency>

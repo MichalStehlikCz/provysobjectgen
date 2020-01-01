@@ -13,9 +13,7 @@ import com.provys.provysdb.dbcontext.DbResultSet;
 import com.provys.provysdb.dbcontext.DbRowMapper;
 import com.provys.provysdb.dbsqlbuilder.DbSql;
 import com.provys.provysdb.dbsqlbuilder.SqlAdmin;
-import com.provys.provysdb.sqlbuilder.Condition;
-import com.provys.provysdb.sqlbuilder.SqlColumnT;
-import com.provys.provysdb.sqlbuilder.SqlTableAlias;
+import com.provys.provysdb.sqlbuilder.*;
 import com.provys.provysobject.ProvysNmObject;
 import com.provys.provysobject.ProvysObject;
 import com.provys.provysobject.impl.*;
@@ -279,11 +277,12 @@ class GeneratorEntity {
         for (var attr : cAttrs) {
             result.add(FieldSpec
                     .builder(
-                            ParameterizedTypeName.get(SqlColumnT.class, attr.getDomain().getImplementingClass(true)),
-                            attr.getNameNm())
+                            ParameterizedTypeName.get(SqlColumnT.class,
+                                    attr.getDomain().getImplementingClass(true)),
+                            "COL_" + attr.getNameNm())
                     .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                    .initializer("column(TABLE_ALIAS, name($S), $T.class)", attr.getNameNm().toLowerCase(),
-                            attr.getDomain().getImplementingClass(true))
+                    .initializer("$T.column(TABLE_ALIAS, name($S), $T.class)", SqlFactory.class,
+                            attr.getNameNm().toLowerCase(), attr.getDomain().getImplementingClass(true))
                     .build());
         }
         return result;
@@ -295,19 +294,36 @@ class GeneratorEntity {
                 TypeSpec.classBuilder(metaName)
                         .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                         .addField(FieldSpec
+                                .builder(SqlIdentifier.class, "TABLE")
+                                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                                .initializer("$T.name($S)", SqlFactory.class, getTable()
+                                        .orElseThrow(() -> new InternalException(LOG,
+                                                "Cannot generate metainformation - table not set for entity "
+                                                        + getNameNm())).toLowerCase())
+                                .build())
+                        .addField(FieldSpec
                                 .builder(SqlTableAlias.class, "TABLE_ALIAS")
                                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                                .initializer("tableAlias($S)", "al" + getNameNm().toLowerCase())
+                                .initializer("$T.tableAlias($S)", SqlFactory.class, "al" + getNameNm().toLowerCase())
+                                .build())
+                        .addField(FieldSpec
+                                .builder(SqlFrom.class, "FROM_CLAUSE")
+                                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                                .initializer("$T.from(TABLE, TABLE_ALIAS)", SqlFactory.class)
                                 .build())
                         .addField(FieldSpec
                                 .builder(ParameterizedTypeName.get(SqlColumnT.class, DtUid.class),
-                                        getNameNm() + "_ID")
+                                        "COL_" + getNameNm() + "_ID")
                                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                                .initializer("column(TABLE_ALIAS, name($S), $T.class)", getNameNm().toLowerCase() + "_id",
-                                        DtUid.class)
+                                .initializer("$T.column(TABLE_ALIAS, $T.name($S), $T.class)", SqlFactory.class,
+                                        SqlFactory.class, getNameNm().toLowerCase() + "_id", DtUid.class)
                                 .build())
                         .addFields(getMetaFields())
+                        .addMethod(MethodSpec.constructorBuilder()
+                                .addModifiers(Modifier.PRIVATE)
+                                .build())
                         .build())
+                .addStaticImport(SqlFactory.class, "*")
                 .build();
     }
 
@@ -1031,8 +1047,8 @@ class GeneratorEntity {
                 .addParameter((attr == null) ? DtUid.class : attr.getDomain().getImplementingClass(false),
                         (attr == null) ? "id" : attr.getJavaName())
                 .addStatement(
-                        "return new $LDbLoadRunner(manager, dbSql, dbSql.eq($T.$L, dbSql.bind($S, $L)))",
-                        getCProperName(), metaName, (attr == null) ? getNameNm() + "_ID" : attr.getNameNm(),
+                        "return new $LDbLoadRunner(manager, dbSql, dbSql.eq($T.COL_$L, dbSql.bind($S, $L)))",
+                        getCProperName(), metaName, ((attr == null) ? getNameNm() + "_ID" : attr.getNameNm()),
                         ((attr == null) ? getNameNm() + "_ID" : attr.getNameNm()).toLowerCase(),
                         (attr == null) ? "id" : attr.getJavaName())
                 .build();
@@ -1090,12 +1106,10 @@ class GeneratorEntity {
     private CodeBlock getDbLoadRunnerSelectBody() {
         var result = CodeBlock.builder()
                 .add("return dbSql.select()\n")
-                .add("        .from(dbSql.name($S), $L.TABLE_ALIAS)\n",
-                        getTable().orElseThrow().toLowerCase(), metaName)
-                .add("        .column($S, $T.class)\n", (getNameNm() + "_id").toLowerCase(), DtUid.class);
+                .add("        .from($T.FROM_CLAUSE)\n", metaName)
+                .add("        .column($T.COL_$L_ID)\n", metaName, getNameNm());
         for (var attr : cAttrs) {
-            result.add("        .column($S, $T.class)\n", attr.getNameNm().toLowerCase(),
-                    attr.getDomain().getImplementingClass(true));
+            result.add("        .column($T.COL_$L)\n", metaName, attr.getNameNm());
         }
         result.add("        .where(condition)\n")
                 .add("        .prepare()\n")
