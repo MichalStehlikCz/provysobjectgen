@@ -51,8 +51,6 @@ class GeneratorEntity {
     @Nonnull
     private final String packageNameApi;
     @Nonnull
-    private final String packageNameApiGen;
-    @Nonnull
     private final String packageNameImpl;
     @Nonnull
     private final String packageNameImplGen;
@@ -107,7 +105,6 @@ class GeneratorEntity {
         this.friendEntities.add(entity.getNameNm()); // we are always friends with ourselves
         var packageName = "com.provys." + module.toLowerCase();
         this.packageNameApi = packageName + ".api";
-        this.packageNameApiGen = packageNameApi;
         this.packageNameImpl = packageName + ".impl";
         this.packageNameImplGen = packageNameImpl;
         this.packageNameDbLoader = packageName + ".dbloader";
@@ -116,7 +113,7 @@ class GeneratorEntity {
                 Character.toLowerCase(module.charAt(0)) + module.substring(1).toLowerCase());
         this.managerName = ClassName.get(packageNameApi, entityName + "Manager");
         this.managerImplName = ClassName.get(packageNameImpl, entityName + "ManagerImpl");
-        this.genInterfaceName =  ClassName.get(packageNameApiGen, "Gen" + entityName);
+        this.genInterfaceName =  ClassName.get(packageNameApi, "Gen" + entityName);
         this.interfaceName = ClassName.get(packageNameApi, entityName);
         this.metaName = ClassName.get(packageNameApi, entityName + "Meta");
         this.genProxyName = ClassName.get(packageNameImplGen, "Gen" + entityName + "Proxy");
@@ -204,13 +201,24 @@ class GeneratorEntity {
     }
 
     @Nonnull
+    String getPackageNameApi() {
+        return packageNameApi;
+    }
+
+    @Nonnull
+    String getPackageNameImpl() {
+        return packageNameImpl;
+    }
+
+    @Nonnull
     String getCProperName() {
         return Character.toUpperCase(entity.getNameNm().charAt(0)) + entity.getNameNm().substring(1).toLowerCase();
     }
 
     private boolean hasNmAttr() {
         // temporary implementation until attribute has keyOrd property
-        return (entity.getNameNm().equals("ENTITY") || entity.getNameNm().equals("DOMAIN"));
+        return (entity.getNameNm().equals("ENTITY") || entity.getNameNm().equals("ENTITYGRP") ||
+                entity.getNameNm().equals("DOMAIN"));
     }
 
     @Nonnull
@@ -253,7 +261,7 @@ class GeneratorEntity {
 
     @Nonnull
     JavaFile generateGenInterface() {
-        return JavaFile.builder(packageNameApiGen,
+        return JavaFile.builder(packageNameApi,
                 TypeSpec.interfaceBuilder(genInterfaceName)
                         .addAnnotation(generatedAnnotation)
                         .addSuperinterface(hasNmAttr() ? ProvysNmObject.class : ProvysObject.class)
@@ -290,7 +298,7 @@ class GeneratorEntity {
 
     @Nonnull
     JavaFile generateMeta() {
-        return JavaFile.builder(packageNameApiGen,
+        return JavaFile.builder(packageNameApi,
                 TypeSpec.classBuilder(metaName)
                         .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                         .addField(FieldSpec
@@ -361,7 +369,7 @@ class GeneratorEntity {
                 if (attr.useObjectReference()) {
                     result.add(attr.getRefGetterBuilder()
                             .addModifiers(Modifier.PUBLIC)
-                            .addStatement(getGenProxyRefGetterStatement(attr))
+                            .addCode(getGenProxyRefGetterStatement(attr))
                             .build());
                 }
                 result.add(attr.getGetterBuilder()
@@ -435,11 +443,6 @@ class GeneratorEntity {
                                 .build())
                         .superclass(genProxyName)
                         .addSuperinterface(interfaceName)
-                        .addField(FieldSpec
-                                .builder(Logger.class, "LOG")
-                                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
-                                .initializer("$T.getLogger($T.class)", LogManager.class, proxyName)
-                                .build())
                         .addMethod(getProxyConstructor())
                         .addMethod(getProxySelf())
                         .addMethod(getProxySelfAsObject())
@@ -527,6 +530,8 @@ class GeneratorEntity {
                         .builder(XmlElement.class)
                         .addMember("name", "$S", getNameNm() + "_ID")
                         .build())
+                .addAnnotation(Nonnull.class)
+                .addAnnotation(Override.class)
                 .addStatement("return super.getId()")
                 .build());
         for (var attr : cAttrs) {
@@ -861,8 +866,6 @@ class GeneratorEntity {
                 result.add("$L =", attr.getJavaName());
                 if (attr.getDomain().getImplementingClass(true).equals(String.class)) {
                     result.add("'\" + $L + '\\'' +\n", attr.getFieldName());
-                } else if (attr.useObjectReference()) {
-                    result.add("\" + (($L == null) ? null : $L.getId()) +\n", attr.getFieldName());
                 } else {
                     result.add("\" + $L +\n", attr.getFieldName());
                 }
@@ -945,7 +948,7 @@ class GeneratorEntity {
         } else if (attr.getDomain().getImplementingClass(true) == DtUid.class) {
             // overload of writeNumberField for DtUid is missing...
             builder.addStatement("generator.writeFieldName($S)", attr.getNameNm());
-            builder.addStatement("generator.writeNumber(value)");
+            builder.addStatement("generator.writeNumber(value.getValue())");
         } else if (attr.getDomain().getImplementingClass(true) == Boolean.class) {
             builder.addStatement("generator.writeBooleanField($S, value)", attr.getNameNm());
         } else {
@@ -960,7 +963,7 @@ class GeneratorEntity {
                 .addStatement("generator.writeStartObject()")
                 .beginControlFlow("if (builder.getId() != null)")
                 .addStatement("generator.writeFieldName($S)", getNameNm() + "_ID")
-                .addStatement("generator.writeNumber(builder.getId())")
+                .addStatement("generator.writeNumber(builder.getId().getValue())")
                 .endControlFlow();
         if (hasNmAttr()) {
             // internal name does not have corresponding upd flag...

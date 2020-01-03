@@ -215,8 +215,8 @@ class GeneratorAttr implements Attr {
 
     @Nonnull
     TypeName getRefGetterReturnType() {
-        return getMandatory() ? getFieldTypeName() :
-                ParameterizedTypeName.get(ClassName.get(Optional.class), getFieldTypeName());
+        var typeName = ClassName.get(entity.getPackageNameApi(), toInitCap(getSubdomainNm().orElseThrow()));
+        return getMandatory() ? typeName : ParameterizedTypeName.get(ClassName.get(Optional.class), typeName);
     }
 
     @Nonnull
