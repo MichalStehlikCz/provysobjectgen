@@ -3,13 +3,12 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>generator</artifactId>
+        <artifactId>provysobjectgen</artifactId>
         <groupId>com.provys.provysobject</groupId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>provysobjectgen-maven-plugin</artifactId>
-    <name>ProvysObjectGen-Maven-Plugin</name>
     <packaging>maven-plugin</packaging>
     <dependencies>
         <dependency>
@@ -25,26 +24,6 @@
         <dependency>
             <groupId>org.apache.maven.plugin-tools</groupId>
             <artifactId>maven-plugin-annotations</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.enterprise</groupId>
-            <artifactId>jakarta.enterprise.cdi-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jboss.weld.se</groupId>
-            <artifactId>weld-se-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jboss</groupId>
-            <artifactId>jandex</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.microprofile.config</groupId>
-            <artifactId>microprofile-config-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.smallrye.config</groupId>
-            <artifactId>smallrye-config</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -64,19 +43,24 @@
         </dependency>
         <dependency>
             <groupId>com.provys.catalogue</groupId>
-            <artifactId>catalogue-impl</artifactId>
+            <artifactId>catalogue-spring</artifactId>
         </dependency>
         <dependency>
             <groupId>com.provys.catalogue</groupId>
-            <artifactId>catalogue-dbloader</artifactId>
+            <artifactId>catalogue-dbloader-spring</artifactId>
         </dependency>
         <dependency>
             <groupId>com.provys.provysdb</groupId>
-            <artifactId>dbcontext</artifactId>
+            <artifactId>dbcontext-spring</artifactId>
         </dependency>
         <dependency>
             <groupId>com.provys.provysobject</groupId>
-            <artifactId>generator-impl</artifactId>
+            <artifactId>provysobjectgen-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.provys.provysobject</groupId>
+            <artifactId>provysobjectgen-spring</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

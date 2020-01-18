@@ -7,12 +7,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.lang.model.element.Modifier;
 import javax.xml.bind.annotation.XmlElement;
-import java.math.BigInteger;
 import java.security.InvalidParameterException;
 import java.util.Objects;
 import java.util.Optional;
 
-class GeneratorAttr implements Attr {
+class GeneratorAttr implements Comparable<GeneratorAttr> {
 
     @Nonnull
     private static String toInitCap(String name) {
@@ -32,111 +31,38 @@ class GeneratorAttr implements Attr {
         }
     }
 
-    @Override
-    @Nonnull
-    public BigInteger getEntityId() {
-        return attr.getEntityId();
-    }
-
-    @Override
-    @Nonnull
-    public Entity getEntity() {
-        return attr.getEntity();
-    }
-
-    @Override
     @Nonnull
     public String getNameNm() {
         return attr.getNameNm();
     }
 
-    @Override
     @Nonnull
     public String getName() {
         return attr.getName();
     }
 
-    @Override
-    @Nonnull
-    public Optional<String> getProperNameRoot() {
-        return attr.getProperNameRoot();
-    }
-
-    @Override
     @Nonnull
     public String getJavaName() {
         // temporary... Catalogue is not compilable to fix it at source...
-        return Character.toLowerCase(attr.getJavaName().charAt(0)) + attr.getJavaName().substring(1);
+        return attr.getcJavaPropertyName();
     }
 
-    @Override
-    @Nonnull
-    public Optional<BigInteger> getAttrGrpId() {
-        return attr.getAttrGrpId();
-    }
-
-    @Override
-    public Optional<AttrGrp> getAttrGrp() {
-        return attr.getAttrGrp();
-    }
-
-    @Override
-    public int getOrd() {
-        return attr.getOrd();
-    }
-
-    @Override
-    @Nonnull
-    public Optional<String> getNote() {
-        return attr.getNote();
-    }
-
-    @Override
-    @Nonnull
-    public AttrType getAttrType() {
-        return attr.getAttrType();
-    }
-
-    @Override
     @Nonnull
     public Domain getDomain() {
         return attr.getDomain();
     }
 
-    @Override
     @Nonnull
     public Optional<String> getSubdomainNm() {
         return attr.getSubdomainNm();
     }
 
-    @Override
-    public boolean getMandatory() {
-        return attr.getMandatory();
-    }
-
-    @Override
-    public Optional<String> getDefValue() {
-        return attr.getDefValue();
-    }
-
-    @Override
-    public int getOrdInEntity() {
-        return attr.getOrdInEntity();
-    }
-
-    @Override
-    @Nonnull
-    public BigInteger getId() {
-        return attr.getId();
-    }
-
-    @Override
-    public int compareTo(Attr o) {
-        return attr.compareTo(o);
+    public boolean isMandatory() {
+        return attr.isMandatory();
     }
 
     boolean isKey() {
-        return attr.getNameNm().equals(attr.getEntity().getNameNm() + "_ID");
+        return attr.getNameNm().equals(attr.getEntity().getKeyNm().orElse(null));
     }
 
     @Nonnull
@@ -155,7 +81,7 @@ class GeneratorAttr implements Attr {
 
     @Nonnull
     TypeName getFieldTypeName() {
-        return TypeName.get(attr.getDomain().getImplementingClass(!attr.getMandatory()));
+        return TypeName.get(getDomain().getImplementingClass(!isMandatory()));
     }
 
     @Nonnull
@@ -170,7 +96,7 @@ class GeneratorAttr implements Attr {
                         .builder(XmlElement.class)
                         .addMember("name", '"' + attr.getNameNm() + '"')
                         .build());
-        if (getMandatory()) {
+        if (isMandatory()) {
             if (!getDomain().getImplementingClass(false).isPrimitive()) {
                 fieldSpecBuilder.addAnnotation(Nonnull.class);
             }
@@ -195,7 +121,7 @@ class GeneratorAttr implements Attr {
     @Nonnull
     ParameterSpec getBuilderSetterParam() {
         var result = ParameterSpec.builder(getBuilderFieldTypeName(), getJavaName());
-        if (!getMandatory()) {
+        if (!isMandatory()) {
             result.addAnnotation(Nullable.class);
         }
         return result.build();
@@ -216,12 +142,13 @@ class GeneratorAttr implements Attr {
     @Nonnull
     TypeName getRefGetterReturnType() {
         var typeName = ClassName.get(entity.getPackageNameApi(), toInitCap(getSubdomainNm().orElseThrow()));
-        return getMandatory() ? typeName : ParameterizedTypeName.get(ClassName.get(Optional.class), typeName);
+        return isMandatory() ? typeName : ParameterizedTypeName.get(ClassName.get(Optional.class), typeName);
     }
 
     @Nonnull
     String getRefGetterName() {
-        return "get" + toInitCap(attr.getJavaName()).substring(0, getJavaName().length()-2);
+        var javaGetterName = attr.getcJavaGetterName();
+        return javaGetterName.substring(0, javaGetterName.length()-2);
     }
 
     @Nonnull
@@ -233,7 +160,7 @@ class GeneratorAttr implements Attr {
 
     @Nonnull
     TypeName getGetterReturnType() {
-        if (attr.getMandatory()) {
+        if (attr.isMandatory()) {
             return TypeName.get(getDomain().getImplementingClass(false));
         } else {
             return ParameterizedTypeName.get(Optional.class, getDomain().getImplementingClass(true));
@@ -241,25 +168,15 @@ class GeneratorAttr implements Attr {
     }
 
     @Nonnull
-    String getAccesorName() {
-        var name = getJavaName();
-        if ((name.length() > 1) && (name.charAt(1) != Character.toLowerCase(name.charAt(1)))) {
-            // weird thing in beans specification (Section 8.8)
-            return name;
-        }
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
-    }
-
-    @Nonnull
     String getGetterName() {
-        return (getDomain().getImplementingClass(!getMandatory())==boolean.class ? "is" : "get") + getAccesorName();
+        return attr.getcJavaGetterName();
     }
 
     @Nonnull
     MethodSpec.Builder getGetterBuilder() {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder(getGetterName())
                 .returns(getGetterReturnType());
-        if (!getMandatory() || !getDomain().getImplementingClass(false).isPrimitive()) {
+        if (!isMandatory() || !getDomain().getImplementingClass(false).isPrimitive()) {
             getterBuilder.addAnnotation(Nonnull.class);
         }
         return getterBuilder;
@@ -267,16 +184,49 @@ class GeneratorAttr implements Attr {
 
     @Nonnull
     String getSetterName() {
-        return "set" + getAccesorName();
+        return attr.getcJavaSetterName();
     }
 
     @Nonnull
     String getUpdGetterName() {
-        return "isUpd" + toInitCap(attr.getJavaName());
+        return "isUpd" + toInitCap(attr.getcJavaPropertyName());
     }
 
     @Nonnull
     String getUpdSetterName() {
-        return "setUpd" + toInitCap(attr.getJavaName());
+        return "setUpd" + toInitCap(attr.getcJavaPropertyName());
+    }
+
+    /**
+     * Compares this object with the specified object for order.  Returns a
+     * negative integer, zero, or a positive integer as this object is less
+     * than, equal to, or greater than the specified object.
+     *
+     * Uses underlying attr and its comparator for comparison
+     *
+     * @param o the object to be compared.
+     * @return a negative integer, zero, or a positive integer as this object
+     * is less than, equal to, or greater than the specified object.
+     * @throws NullPointerException if the specified object is null
+     * @throws ClassCastException   if the specified object's type prevents it
+     *                              from being compared to this object.
+     */
+    @Override
+    public int compareTo(GeneratorAttr o) {
+        return attr.compareTo(o.attr);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        GeneratorAttr that = (GeneratorAttr) o;
+        return entity.equals(that.entity) &&
+                attr.equals(that.attr);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(entity, attr);
     }
 }

@@ -1,20 +1,26 @@
 package com.provys.provysobject.generator.restapi;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.info.Info;
-import io.swagger.v3.oas.annotations.servers.Server;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.context.annotation.Bean;
+import springfox.documentation.swagger.web.UiConfiguration;
+import springfox.documentation.swagger.web.UiConfigurationBuilder;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.core.Application;
+@SpringBootApplication(scanBasePackages = "com.provys")
+@ConfigurationPropertiesScan(basePackages = "com.provys")
+@EnableSwagger2
+public class ProvysObjectGenApplication {
 
-@ApplicationPath("/api")
-@OpenAPIDefinition(
-        info = @Info(
-                title = "Generator for ProvysObject based classes",
-                version = "1.0",
-                description = "Contains methods for geenrating classes, needed to implement access to objects from" +
-                        " Provys database, described as entities in its metadata catalogue"
-        ),
-        servers = {@Server(url = "/provysobjectgen/api")}) // needed because swagger does not read path from appplication...
-public class ProvysObjectGenApplication extends Application {
+        public static void main(String[] args) {
+                SpringApplication.run(ProvysObjectGenApplication.class, args);
+        }
+
+        @Bean
+        UiConfiguration uiConfig() {
+                return UiConfigurationBuilder.builder()
+                        .validatorUrl(null)
+                        .build();
+        }
 }

@@ -1,9 +1,14 @@
 package com.provys.provysobject.generator.plugin;
 
-import javax.enterprise.context.ApplicationScoped;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
-@ApplicationScoped
-public class Generator {
+import java.util.Objects;
+
+@SpringBootApplication(scanBasePackages = "com.provys")
+@ConfigurationPropertiesScan(basePackages = "com.provys")
+public class Generator implements CommandLineRunner {
 
     private GenerateMojo mojo;
 
@@ -25,10 +30,9 @@ public class Generator {
         return this;
     }
 
-    public void run() {
-        if (mojo == null) {
-            throw new IllegalStateException("Mojo not set - cannot run");
-        }
+    @Override
+    public void run(String... args) throws Exception {
+        mojo = Objects.requireNonNull(GenerateMojo.INSTANCE);
         // run
         mojo.getLog().info("Hello world");
     }

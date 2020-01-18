@@ -5,23 +5,18 @@ import com.provys.provysobject.generator.EntityGenerator;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@ApplicationScoped
 public class DefaultEntityGenerator implements EntityGenerator {
 
     @Nonnull
     private final CatalogueRepository catalogueRepository;
 
-    @SuppressWarnings("CdiInjectionPointsInspection")
-    @Inject
-    DefaultEntityGenerator(CatalogueRepository catalogueRepository) {
+    public DefaultEntityGenerator(CatalogueRepository catalogueRepository) {
         this.catalogueRepository = Objects.requireNonNull(catalogueRepository);
     }
 

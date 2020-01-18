@@ -1,2 +1,5 @@
-FROM jboss/wildfly:18.0.1.Final
-COPY ./target/provysobjectgen.war /opt/jboss/wildfly/standalone/deployments/
+FROM adoptopenjdk:11-jre-hotspot
+RUN mkdir /opt/app
+COPY ./target/provysobjectgen.jar /opt/app/
+EXPOSE 8080
+ENTRYPOINT exec java $JAVA_OPTS -jar /opt/app/provysobjectgen.jar

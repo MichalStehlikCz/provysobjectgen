@@ -4,60 +4,73 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>com.provys.provysobject</groupId>
-        <artifactId>generator</artifactId>
+        <artifactId>provysobjectgen</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>generator-restapi</artifactId>
-    <name>Generator-RestApi</name>
-    <packaging>war</packaging>
+    <artifactId>provysobjectgen-restapi</artifactId>
+    <packaging>jar</packaging>
     <dependencies>
         <dependency>
-            <groupId>jakarta.platform</groupId>
-            <artifactId>jakarta.jakartaee-api</artifactId>
-            <scope>provided</scope>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-log4j2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger-ui</artifactId>
         </dependency>
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-annotations</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
+            <groupId>com.provys.common</groupId>
+            <artifactId>common-spring</artifactId>
         </dependency>
         <dependency>
             <groupId>com.provys.catalogue</groupId>
-            <artifactId>catalogue-api</artifactId>
+            <artifactId>catalogue-spring</artifactId>
         </dependency>
         <dependency>
             <groupId>com.provys.catalogue</groupId>
-            <artifactId>catalogue-impl</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.provys.catalogue</groupId>
-            <artifactId>catalogue-dbloader</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.provys.provysdb</groupId>
-            <artifactId>dbcontext</artifactId>
+            <artifactId>catalogue-dbloader-spring</artifactId>
         </dependency>
         <dependency>
             <groupId>com.provys.provysobject</groupId>
-            <artifactId>generator-impl</artifactId>
+            <artifactId>provysobjectgen-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.provys.provysobject</groupId>
+            <artifactId>provysobjectgen-spring</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
     <build>
         <finalName>provysobjectgen</finalName>
         <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -94,27 +107,6 @@
                                 <argument>8085</argument>
                             </arguments>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>io.swagger.core.v3</groupId>
-                <artifactId>swagger-maven-plugin</artifactId>
-                <configuration>
-                    <outputFileName>openapi</outputFileName>
-                    <outputPath>${project.basedir}/src/main/webapp/openapi</outputPath>
-                    <outputFormat>JSONANDYAML</outputFormat>
-                    <resourcePackages>
-                        <package>com.provys.provysobject.generator.restapi</package>
-                    </resourcePackages>
-                    <prettyPrint>true</prettyPrint>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>resolve</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>

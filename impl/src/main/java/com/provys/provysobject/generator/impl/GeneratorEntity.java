@@ -24,13 +24,10 @@ import org.apache.logging.log4j.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.processing.Generated;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import javax.lang.model.element.Modifier;
 import javax.xml.bind.annotation.*;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -108,7 +105,7 @@ class GeneratorEntity {
         this.packageNameImpl = packageName + ".impl";
         this.packageNameImplGen = packageNameImpl;
         this.packageNameDbLoader = packageName + ".dbloader";
-        var entityName = getCProperName();
+        var entityName = getcProperName();
         this.moduleRepositoryName = ClassName.get(packageNameApi,
                 Character.toLowerCase(module.charAt(0)) + module.substring(1).toLowerCase());
         this.managerName = ClassName.get(packageNameApi, entityName + "Manager");
@@ -138,16 +135,11 @@ class GeneratorEntity {
      */
     private List<GeneratorAttr> buildCAttrs() {
         return entity.getAttrs().stream()
-                .filter(attr -> (attr.getAttrType() == AttrType.COLUMN))
+                .filter(attr -> (attr.getAttrType() == 'C'))
                 .map(attr -> new GeneratorAttr(this, attr))
                 .filter(attr -> (!attr.isKey()))
                 .sorted()
                 .collect(Collectors.toList());
-    }
-
-    @Nonnull
-    public CatalogueRepository getCatalogueRepository() {
-        return catalogueRepository;
     }
 
     @Nonnull
@@ -166,38 +158,13 @@ class GeneratorEntity {
     }
 
     @Nonnull
-    public Optional<String> getTable() {
-        return entity.getTable();
-    }
-
-    @Nonnull
-    public Optional<String> getView() {
-        return entity.getView();
-    }
-
-    @Nonnull
-    public Optional<Entity> getAncestor() {
-        return entity.getAncestor();
-    }
-
-    @Nonnull
-    public Optional<String> getNote() {
-        return entity.getNote();
-    }
-
-    @Nonnull
-    public Collection<Attr> getAttrs() {
-        return entity.getAttrs();
+    public Optional<String> getTableNm() {
+        return entity.getTableNm();
     }
 
     @Nonnull
     public String getNameNm() {
         return entity.getNameNm();
-    }
-
-    @Nonnull
-    public BigInteger getId() {
-        return entity.getId();
     }
 
     @Nonnull
@@ -211,14 +178,17 @@ class GeneratorEntity {
     }
 
     @Nonnull
-    String getCProperName() {
-        return Character.toUpperCase(entity.getNameNm().charAt(0)) + entity.getNameNm().substring(1).toLowerCase();
+    String getcProperName() {
+        return entity.getcProperName();
     }
 
     private boolean hasNmAttr() {
-        // temporary implementation until attribute has keyOrd property
-        return (entity.getNameNm().equals("ENTITY") || entity.getNameNm().equals("ENTITYGRP") ||
-                entity.getNameNm().equals("DOMAIN"));
+        for (var attr : entity.getAttrs()) {
+            if (attr.getNameNm().equals("NAME_NM")) {
+                return attr.getKeyOrd().filter(keyord -> (keyord == 1)).isPresent();
+            }
+        }
+        return false;
     }
 
     @Nonnull
@@ -304,8 +274,8 @@ class GeneratorEntity {
                         .addField(FieldSpec
                                 .builder(SqlIdentifier.class, "TABLE")
                                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                                .initializer("$T.name($S)", SqlFactory.class, getTable()
-                                        .orElseThrow(() -> new InternalException(LOG,
+                                .initializer("$T.name($S)", SqlFactory.class, getTableNm()
+                                        .orElseThrow(() -> new InternalException(
                                                 "Cannot generate metainformation - table not set for entity "
                                                         + getNameNm())).toLowerCase())
                                 .build())
@@ -347,7 +317,7 @@ class GeneratorEntity {
     @Nonnull
     private CodeBlock getGenProxyRefGetterStatement(GeneratorAttr attr) {
         var result = CodeBlock.builder();
-        if (attr.getMandatory()) {
+        if (attr.isMandatory()) {
             result.addStatement("return getManager().getRepository().get$LManager()." +
                             "getById($L())",
                     catalogueRepository.getEntityManager().getByNameNm(attr.getSubdomainNm().orElseThrow())
@@ -499,7 +469,7 @@ class GeneratorEntity {
                             .builder(JsonProperty.class)
                             .addMember("value", "$S", attr.getNameNm())
                             .build());
-            if (!attr.getMandatory()) {
+            if (!attr.isMandatory()) {
                 parameterBuilder.addAnnotation(Nullable.class);
             }
             constructorBuilder.addParameter(parameterBuilder.build());
@@ -507,7 +477,7 @@ class GeneratorEntity {
         constructorBuilder.addStatement("super(id" + (hasNmAttr() ? ", nameNm" : "") + ")");
         for (var attr : cAttrs) {
             if (!attr.getNameNm().equals("NAME_NM") || !hasNmAttr()) {
-                if (!attr.getMandatory() || attr.getDomain().getImplementingClass(false).isPrimitive()) {
+                if (!attr.isMandatory() || attr.getDomain().getImplementingClass(false).isPrimitive()) {
                     constructorBuilder.addStatement("this.$1L = $1L", attr.getFieldName());
                 } else {
                     constructorBuilder.addStatement("this.$1L = $2T.requireNonNull($1L)", attr.getFieldName(),
@@ -538,7 +508,7 @@ class GeneratorEntity {
             if (!attr.getNameNm().equals("NAME_NM") || !hasNmAttr()) {
                 result.add(attr.getGetterBuilder()
                         .addModifiers(Modifier.PUBLIC)
-                        .addStatement(attr.getMandatory() ? "return $1L" : "return Optional.ofNullable($1L)",
+                        .addStatement(attr.isMandatory() ? "return $1L" : "return Optional.ofNullable($1L)",
                                 attr.getFieldName())
                         .build()
                 );
@@ -548,7 +518,7 @@ class GeneratorEntity {
     }
 
     private void addValueAttrEquality(CodeBlock.Builder eqStatement, GeneratorAttr attr) {
-        if (attr.getMandatory()) {
+        if (attr.isMandatory()) {
             if (attr.getDomain().getImplementingClass(false).isPrimitive()) {
                 eqStatement.add("$1L == that.$1L", attr.getFieldName());
             } else {
@@ -647,7 +617,7 @@ class GeneratorEntity {
                 .addStatement("super(value)");
         for (var attr : cAttrs) {
             if (!attr.getNameNm().equals("NAME_NM") || !hasNmAttr()) {
-                if (attr.getMandatory()) {
+                if (attr.isMandatory()) {
                     result.addStatement("$L(value.$L())", attr.getSetterName(), attr.getGetterName());
                 } else {
                     result.addStatement("$L(value.$L().orElse(null))", attr.getSetterName(), attr.getGetterName());
@@ -692,7 +662,7 @@ class GeneratorEntity {
     @Nonnull
     private CodeBlock getValueBuilderUpdSetterCode(GeneratorAttr attr) {
         var result = CodeBlock.builder();
-        if (attr.getMandatory()) {
+        if (attr.isMandatory()) {
             result.beginControlFlow("if (!this.$L && $L)", attr.getUpdFieldName(), attr.getUpdFieldName())
                     .addStatement("throw new $T(LOG, \"Cannot directly set update flag $L; set value instead\")",
                             InternalException.class, attr.getUpdFieldName())
@@ -737,7 +707,7 @@ class GeneratorEntity {
                         .addModifiers(Modifier.PUBLIC)
                         .returns(valueBuilderName)
                         .addParameter(attr.getBuilderSetterParam())
-                        .addStatement(attr.getMandatory() ? "this.$L = Objects.requireNonNull($L)" : "this.$L = $L",
+                        .addStatement(attr.isMandatory() ? "this.$L = Objects.requireNonNull($L)" : "this.$L = $L",
                                 attr.getJavaName(), attr.getJavaName())
                         .addStatement("this.$L = true", attr.getUpdFieldName())
                         .addStatement("return self()")
@@ -788,7 +758,7 @@ class GeneratorEntity {
                 .add("return new $T($T.requireNonNull(getId(), \"$L_ID must be specified for build\")\n",
                         valueName, Objects.class, getNameNm());
         for (var attr : cAttrs) {
-            if (attr.getMandatory()) {
+            if (attr.isMandatory()) {
                 result.add(", $T.requireNonNull($L(), \"$L must be specified for build\")\n",
                         Objects.class, attr.getGetterName(), attr.getNameNm());
             } else {
@@ -853,7 +823,7 @@ class GeneratorEntity {
     @Nonnull
     private CodeBlock getValueBuilderToStringCode() {
         var result = CodeBlock.builder()
-                .add("return \"$LValueBuilder{\" +\n", getCProperName());
+                .add("return \"$LValueBuilder{\" +\n", getcProperName());
         boolean first = true;
         for (var attr : cAttrs) {
             if (!attr.getNameNm().equals("NAME_NM") || !hasNmAttr()) {
@@ -1051,7 +1021,7 @@ class GeneratorEntity {
                         (attr == null) ? "id" : attr.getJavaName())
                 .addStatement(
                         "return new $LDbLoadRunner(manager, dbSql, dbSql.eq($T.COL_$L, dbSql.bind($S, $L)))",
-                        getCProperName(), metaName, ((attr == null) ? getNameNm() + "_ID" : attr.getNameNm()),
+                        getcProperName(), metaName, ((attr == null) ? getNameNm() + "_ID" : attr.getNameNm()),
                         ((attr == null) ? getNameNm() + "_ID" : attr.getNameNm()).toLowerCase(),
                         (attr == null) ? "id" : attr.getJavaName())
                 .build();
@@ -1066,7 +1036,7 @@ class GeneratorEntity {
                 .returns(dbLoadRunnerName)
                 .addParameter(managerImplName, "manager")
                 .addStatement(
-                        "return new $LDbLoadRunner(manager, dbSql, null)", getCProperName())
+                        "return new $LDbLoadRunner(manager, dbSql, null)", getcProperName())
                 .build();
     }
 
@@ -1087,7 +1057,6 @@ class GeneratorEntity {
     JavaFile generateDbLoader() {
         return  JavaFile.builder(packageNameDbLoader,
                 TypeSpec.classBuilder(dbLoaderName)
-                        .addAnnotation(ApplicationScoped.class)
                         .addModifiers(Modifier.PUBLIC)
                         .superclass(loaderBaseName)
                         .addField(FieldSpec
@@ -1096,7 +1065,6 @@ class GeneratorEntity {
                                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
                                 .build())
                         .addMethod(MethodSpec.constructorBuilder()
-                                .addAnnotation(Inject.class)
                                 .addParameter(SqlAdmin.class,"dbSql")
                                 .addStatement("this.dbSql = $T.requireNonNull(dbSql)", Objects.class)
                                 .build())
@@ -1133,7 +1101,7 @@ class GeneratorEntity {
         int col = 2;
         for (var attr : cAttrs) {
             result.addCode("    .$L(dbResultSet.get$L$L($L))\n",
-                    attr.getSetterName(), attr.getMandatory() ? "Nonnull" : "Nullable",
+                    attr.getSetterName(), attr.isMandatory() ? "Nonnull" : "Nullable",
                     attr.getDomain().getImplementingClass(true).getSimpleName(), col++);
         }
         result.addCode("    .build();\n");
@@ -1148,9 +1116,9 @@ class GeneratorEntity {
                                 ClassName.get(ProvysObjectLoadRunner.class),
                                 interfaceName, valueName, proxyName, managerImplName))
                         .addField(FieldSpec
-                                .builder(dbLoadRunnerName.nestedClass(getCProperName() + "DbMapper"), "MAPPER")
+                                .builder(dbLoadRunnerName.nestedClass(getcProperName() + "DbMapper"), "MAPPER")
                                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
-                                .initializer("new $LDbMapper()", getCProperName())
+                                .initializer("new $LDbMapper()", getcProperName())
                                 .build())
                         .addField(FieldSpec
                                 .builder(DbSql.class, "dbSql")
@@ -1182,7 +1150,7 @@ class GeneratorEntity {
                                 .build()
                         )
                         .addType(TypeSpec
-                                .classBuilder(getCProperName() + "DbMapper")
+                                .classBuilder(getcProperName() + "DbMapper")
                                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
                                 .addSuperinterface(
                                         ParameterizedTypeName.get(ClassName.get(DbRowMapper.class), valueName))

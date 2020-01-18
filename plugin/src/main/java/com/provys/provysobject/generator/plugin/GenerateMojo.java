@@ -4,18 +4,16 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
-
-import javax.enterprise.inject.se.SeContainer;
-import javax.enterprise.inject.se.SeContainerInitializer;
+import org.springframework.boot.SpringApplication;
 
 @Mojo(name = "generate")
 public class GenerateMojo extends AbstractMojo {
+
+    public static GenerateMojo INSTANCE;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        SeContainer container = SeContainerInitializer.newInstance()
-                .addProperty("org.jboss.weld.se.archive.isolation", false).initialize();
-        Generator generator = container.select(Generator.class).get();
-        generator.setMojo(this)
-                .run();
+        String[] args = new String[0];
+        SpringApplication.run(Generator.class, args);
     }
 }
