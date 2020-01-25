@@ -2,6 +2,7 @@ package com.provys.provysobject.generator.impl;
 
 import com.provys.catalogue.api.*;
 import com.provys.provysobject.generator.EntityGenerator;
+import com.squareup.javapoet.JavaFile;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -25,6 +26,15 @@ public class DefaultEntityGenerator implements EntityGenerator {
             return Collections.emptyList();
         }
         return Arrays.stream(friendEntities.split(",")).map(String::strip).collect(Collectors.toList());
+    }
+
+    @Nonnull
+    @Override
+    public JavaFile getGenInterface(String entityNm, List<String> friendEntities) {
+        return new GeneratorEntity(catalogueRepository,
+                catalogueRepository.getEntityManager().getByNameNm(entityNm), "Catalogue",
+                friendEntities)
+                .generateGenInterface();
     }
 
     @Nonnull

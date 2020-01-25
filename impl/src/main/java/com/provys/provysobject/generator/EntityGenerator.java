@@ -1,9 +1,15 @@
 package com.provys.provysobject.generator;
 
+import com.squareup.javapoet.JavaFile;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.List;
 
 public interface EntityGenerator {
+
+    @Nonnull
+    JavaFile getGenInterface(String entityNm, List<String> friendEntities);
 
     /**
      * Generate generated ancestor of interface for accessing instances of given object
