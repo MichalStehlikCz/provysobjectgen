@@ -11,6 +11,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -77,24 +78,24 @@ public class GenerateMojo extends AbstractMojo {
      * @return value of field apiModule
      */
     @Nonnull
-    public Optional<File> getApiModule() {
-        return Optional.ofNullable(apiModule);
+    public Optional<Path> getApiModule() {
+        return Optional.ofNullable(apiModule).map(File::toPath);
     }
 
     /**
      * @return value of field implModule
      */
     @Nonnull
-    public Optional<File> getImplModule() {
-        return Optional.ofNullable(implModule);
+    public Optional<Path> getImplModule() {
+        return Optional.ofNullable(implModule).map(File::toPath);
     }
 
     /**
      * @return value of field dbLoaderModule
      */
     @Nonnull
-    public Optional<File> getDbLoaderModule() {
-        return Optional.ofNullable(dbLoaderModule);
+    public Optional<Path> getDbLoaderModule() {
+        return Optional.ofNullable(dbLoaderModule).map(File::toPath);
     }
 
     @Override

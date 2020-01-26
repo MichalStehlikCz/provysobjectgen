@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.util.StdConverter;
 import com.provys.catalogue.api.*;
 import com.provys.common.datatype.DtUid;
 import com.provys.common.exception.InternalException;
+import com.provys.common.exception.RegularException;
 import com.provys.provysdb.dbcontext.DbResultSet;
 import com.provys.provysdb.dbcontext.DbRowMapper;
 import com.provys.provysdb.dbsqlbuilder.DbSql;
@@ -29,7 +30,6 @@ import javax.lang.model.element.Modifier;
 import javax.xml.bind.annotation.*;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -92,7 +92,6 @@ class DefaultEntityGenerator implements EntityGenerator {
     private final AnnotationSpec generatedAnnotation = AnnotationSpec
             .builder(Generated.class)
             .addMember("value", "\"com.provys.provysobject.generator.impl.GeneratorEntity\"")
-            .addMember("date", '"' + LocalDateTime.now().toString() + '"')
             .build();
 
     DefaultEntityGenerator(CatalogueRepository catalogueRepository, Entity entity, String module,
@@ -101,14 +100,14 @@ class DefaultEntityGenerator implements EntityGenerator {
         this.entity = Objects.requireNonNull(entity);
         this.friendEntities = new HashSet<>(friendEntities);
         this.friendEntities.add(entity.getNameNm()); // we are always friends with ourselves
-        var packageName = "com.provys." + module.toLowerCase();
+        var packageName = "com.provys." + module.toLowerCase(Locale.ENGLISH);
         this.packageNameApi = packageName + ".api";
         this.packageNameImpl = packageName + ".impl";
         this.packageNameImplGen = packageNameImpl;
         this.packageNameDbLoader = packageName + ".dbloader";
         var entityName = getcProperName();
         this.moduleRepositoryName = ClassName.get(packageNameApi,
-                Character.toLowerCase(module.charAt(0)) + module.substring(1).toLowerCase());
+                Character.toLowerCase(module.charAt(0)) + module.substring(1).toLowerCase(Locale.ENGLISH));
         this.managerName = ClassName.get(packageNameApi, entityName + "Manager");
         this.managerImplName = ClassName.get(packageNameImpl, entityName + "ManagerImpl");
         this.genInterfaceName =  ClassName.get(packageNameApi, "Gen" + entityName);
@@ -162,13 +161,15 @@ class DefaultEntityGenerator implements EntityGenerator {
     }
 
     @Nonnull
-    public String getName() {
-        return entity.getName();
+    public Optional<String> getTableNm() {
+        return entity.getTableNm();
     }
 
     @Nonnull
-    public Optional<String> getTableNm() {
-        return entity.getTableNm();
+    public String getKeyNm() {
+        return entity.getKeyNm()
+                .orElseThrow(() -> new RegularException("PROVYSOBJECTGEN_ENTITY_HAS_NP_KEY",
+                        "Cannot generate repository for entity without key (" + getNameNm() + ")"));
     }
 
     @Nonnull
@@ -275,7 +276,8 @@ class DefaultEntityGenerator implements EntityGenerator {
                             "COL_" + attr.getNameNm())
                     .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
                     .initializer("$T.column(TABLE_ALIAS, name($S), $T.class)", SqlFactory.class,
-                            attr.getNameNm().toLowerCase(), attr.getDomain().getImplementingClass(true))
+                            attr.getNameNm().toLowerCase(Locale.ENGLISH), attr.getDomain()
+                                    .getImplementingClass(true))
                     .build());
         }
         return result;
@@ -293,12 +295,13 @@ class DefaultEntityGenerator implements EntityGenerator {
                                 .initializer("$T.name($S)", SqlFactory.class, getTableNm()
                                         .orElseThrow(() -> new InternalException(
                                                 "Cannot generate metainformation - table not set for entity "
-                                                        + getNameNm())).toLowerCase())
+                                                        + getNameNm())).toLowerCase(Locale.ENGLISH))
                                 .build())
                         .addField(FieldSpec
                                 .builder(SqlTableAlias.class, "TABLE_ALIAS")
                                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                                .initializer("$T.tableAlias($S)", SqlFactory.class, "al" + getNameNm().toLowerCase())
+                                .initializer("$T.tableAlias($S)", SqlFactory.class, "al"
+                                        + getNameNm().toLowerCase(Locale.ENGLISH))
                                 .build())
                         .addField(FieldSpec
                                 .builder(SqlFrom.class, "FROM_CLAUSE")
@@ -307,10 +310,10 @@ class DefaultEntityGenerator implements EntityGenerator {
                                 .build())
                         .addField(FieldSpec
                                 .builder(ParameterizedTypeName.get(SqlColumnT.class, DtUid.class),
-                                        "COL_" + getNameNm() + "_ID")
+                                        "COL_" + getKeyNm())
                                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
                                 .initializer("$T.column(TABLE_ALIAS, $T.name($S), $T.class)", SqlFactory.class,
-                                        SqlFactory.class, getNameNm().toLowerCase() + "_id", DtUid.class)
+                                        SqlFactory.class, getKeyNm().toLowerCase(Locale.ENGLISH), DtUid.class)
                                 .build())
                         .addFields(getMetaFields())
                         .addMethod(MethodSpec.constructorBuilder()
@@ -486,7 +489,7 @@ class DefaultEntityGenerator implements EntityGenerator {
                         .builder(DtUid.class, "id")
                         .addAnnotation(AnnotationSpec
                                 .builder(JsonProperty.class)
-                                .addMember("value", "$S", getNameNm() + "_ID")
+                                .addMember("value", "$S", getKeyNm())
                                 .build())
                         .build());
         for (var attr : cAttrs) {
@@ -525,7 +528,7 @@ class DefaultEntityGenerator implements EntityGenerator {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(AnnotationSpec
                         .builder(XmlElement.class)
-                        .addMember("name", "$S", getNameNm() + "_ID")
+                        .addMember("name", "$S", getKeyNm())
                         .build())
                 .addAnnotation(Nonnull.class)
                 .addAnnotation(Override.class)
@@ -714,7 +717,7 @@ class DefaultEntityGenerator implements EntityGenerator {
                 .returns(DtUid.class)
                 .addAnnotation(AnnotationSpec
                         .builder(XmlElement.class)
-                        .addMember("name", "\"$L_ID\"", getNameNm())
+                        .addMember("name", "$S", getKeyNm())
                         .build())
                 .addAnnotation(Override.class)
                 .addAnnotation(Nullable.class)
@@ -785,8 +788,8 @@ class DefaultEntityGenerator implements EntityGenerator {
     @Nonnull
     private CodeBlock getValueBuilderBuildCode() {
         var result = CodeBlock.builder()
-                .add("return new $T($T.requireNonNull(getId(), \"$L_ID must be specified for build\")\n",
-                        valueName, Objects.class, getNameNm());
+                .add("return new $T($T.requireNonNull(getId(), \"$L must be specified for build\")\n",
+                        valueName, Objects.class, getKeyNm());
         for (var attr : cAttrs) {
             if (attr.isMandatory()) {
                 result.add(", $T.requireNonNull($L(), \"$L must be specified for build\")\n",
@@ -965,7 +968,7 @@ class DefaultEntityGenerator implements EntityGenerator {
         var result = CodeBlock.builder()
                 .addStatement("generator.writeStartObject()")
                 .beginControlFlow("if (builder.getId() != null)")
-                .addStatement("generator.writeFieldName($S)", getNameNm() + "_ID")
+                .addStatement("generator.writeFieldName($S)", getKeyNm())
                 .addStatement("generator.writeNumber(builder.getId().getValue())")
                 .endControlFlow();
         if (hasNmAttr()) {
@@ -1059,8 +1062,9 @@ class DefaultEntityGenerator implements EntityGenerator {
                         (attr == null) ? "id" : attr.getJavaName())
                 .addStatement(
                         "return new $LDbLoadRunner(manager, dbSql, dbSql.eq($T.COL_$L, dbSql.bind($S, $L)))",
-                        getcProperName(), metaName, ((attr == null) ? getNameNm() + "_ID" : attr.getNameNm()),
-                        ((attr == null) ? getNameNm() + "_ID" : attr.getNameNm()).toLowerCase(),
+                        getcProperName(), metaName, ((attr == null) ? getKeyNm() : attr.getNameNm()),
+                        ((attr == null) ? getKeyNm().toLowerCase(Locale.ENGLISH) :
+                                attr.getNameNm()).toLowerCase(Locale.ENGLISH),
                         (attr == null) ? "id" : attr.getJavaName())
                 .build();
     }
@@ -1119,7 +1123,7 @@ class DefaultEntityGenerator implements EntityGenerator {
         var result = CodeBlock.builder()
                 .add("return dbSql.select()\n")
                 .add("        .from($T.FROM_CLAUSE)\n", metaName)
-                .add("        .column($T.COL_$L_ID)\n", metaName, getNameNm());
+                .add("        .column($T.COL_$L)\n", metaName, getKeyNm());
         for (var attr : cAttrs) {
             result.add("        .column($T.COL_$L)\n", metaName, attr.getNameNm());
         }

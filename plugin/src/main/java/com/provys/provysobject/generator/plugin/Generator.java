@@ -3,18 +3,14 @@ package com.provys.provysobject.generator.plugin;
 import com.provys.common.exception.RegularException;
 import com.provys.provysobject.generator.EntityGenerator;
 import com.provys.provysobject.generator.ModuleGenerator;
-import com.squareup.javapoet.Util;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 import javax.annotation.Nonnull;
-import java.io.File;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -59,37 +55,37 @@ public class Generator implements CommandLineRunner {
 //            }
 //
 //            Files.createDirectories(outputDirectory);
-        }
-
-        Path outputPath = outputDirectory.resolve(this.typeSpec.name + ".java");
-        OutputStreamWriter writer = new OutputStreamWriter(Files.newOutputStream(outputPath), charset);
+//        }
+//
+//        Path outputPath = outputDirectory.resolve(this.typeSpec.name + ".java");
+//        OutputStreamWriter writer = new OutputStreamWriter(Files.newOutputStream(outputPath), charset);
     }
 
-    private void writeApiModule(EntityGenerator entityGenerator, File apiModule) {
-        prepareDirectory(apiModule.toPath());
+    private void writeApiModule(EntityGenerator entityGenerator, Path apiModule) {
+        prepareDirectory(apiModule);
         try {
-            entityGenerator.generateGenInterface().writeTo(
-                    Path.of(apiModule, "src", "main", "java"));
+            entityGenerator.generateGenInterface().writeTo(apiModule.resolve("src").resolve("main").resolve("java"));
         } catch (IOException e) {
             throw new RegularException("PROVYSOBJECTGEN_CANNOT_WRITE_API", "Cannot write api source files", e);
         }
     }
 
-    private void writeImplModule(EntityGenerator entityGenerator, String implModule) {
+    private void writeImplModule(EntityGenerator entityGenerator, Path implModule) {
+        prepareDirectory(implModule);
         try {
-            entityGenerator.generateValue().writeTo(
-                    Path.of(implModule, "src", "main", "java"));
+            entityGenerator.generateValue().writeTo(implModule.resolve("src").resolve("main").resolve("java"));
         } catch (IOException e) {
             throw new RegularException("PROVYSOBJECTGEN_CANNOT_WRITE_IMPL", "Cannot write impl source files", e);
         }
     }
 
-    private void writeDbLoaderModule(EntityGenerator entityGenerator, String dbLoaderModule) {
+    private void writeDbLoaderModule(EntityGenerator entityGenerator, Path dbLoaderModule) {
+        prepareDirectory(dbLoaderModule);
         try {
 //            entityGenerator.generateDbLoader().writeTo(
 //                    Path.of(dbLoaderModule, "src", "main", "java"));
             entityGenerator.generateDbLoadRunner().writeTo(
-                    Path.of(dbLoaderModule, "src", "main", "java"));
+                    dbLoaderModule.resolve("src").resolve("main").resolve("java"));
         } catch (IOException e) {
             throw new RegularException("PROVYSOBJECTGEN_CANNOT_WRITE_DBLOADER", "Cannot write dbloader source files", e);
         }
@@ -105,7 +101,7 @@ public class Generator implements CommandLineRunner {
                     friendEntities);
             mojo.getApiModule().ifPresent(apiModule -> writeApiModule(entityGenerator, apiModule));
             mojo.getImplModule().ifPresent(implModule -> writeImplModule(entityGenerator, implModule));
-            mojo.getImplModule().ifPresent(dbLoaderModule -> writeDbLoaderModule(entityGenerator, dbLoaderModule));
+            mojo.getDbLoaderModule().ifPresent(dbLoaderModule -> writeDbLoaderModule(entityGenerator, dbLoaderModule));
         }
         mojo.getLog().info("Finished generating " + mojo.getModule());
     }
