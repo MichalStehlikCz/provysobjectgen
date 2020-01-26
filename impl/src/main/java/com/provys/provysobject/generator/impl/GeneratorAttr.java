@@ -19,11 +19,11 @@ class GeneratorAttr implements Comparable<GeneratorAttr> {
     }
 
     @Nonnull
-    private final GeneratorEntity entity;
+    private final DefaultEntityGenerator entity;
     @Nonnull
     private final Attr attr;
 
-    GeneratorAttr(GeneratorEntity entity, Attr attr) {
+    GeneratorAttr(DefaultEntityGenerator entity, Attr attr) {
         this.entity = Objects.requireNonNull(entity);
         this.attr = Objects.requireNonNull(attr);
         if (entity.getEntity() != attr.getEntity()) {
@@ -141,7 +141,9 @@ class GeneratorAttr implements Comparable<GeneratorAttr> {
 
     @Nonnull
     TypeName getRefGetterReturnType() {
-        var typeName = ClassName.get(entity.getPackageNameApi(), toInitCap(getSubdomainNm().orElseThrow()));
+        var typeName = ClassName.get(entity.getPackageNameApi(),
+                entity.getCatalogueRepository().getEntityManager()
+                        .getByNameNm(getSubdomainNm().orElseThrow()).getcProperName());
         return isMandatory() ? typeName : ParameterizedTypeName.get(ClassName.get(Optional.class), typeName);
     }
 

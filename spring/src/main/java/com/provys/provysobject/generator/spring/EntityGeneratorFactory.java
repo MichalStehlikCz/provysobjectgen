@@ -1,7 +1,7 @@
 package com.provys.provysobject.generator.spring;
 
 import com.provys.catalogue.api.CatalogueRepository;
-import com.provys.provysobject.generator.impl.DefaultEntityGenerator;
+import com.provys.provysobject.generator.impl.DefaultModuleGenerator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class EntityGeneratorFactory {
 
     @Bean
-    public DefaultEntityGenerator getEntityGenerator(CatalogueRepository catalogueRepository) {
-        return new DefaultEntityGenerator(catalogueRepository);
+    public DefaultModuleGenerator getEntityGenerator(CatalogueRepository catalogueRepository) {
+        return new DefaultModuleGenerator(catalogueRepository);
     }
 }

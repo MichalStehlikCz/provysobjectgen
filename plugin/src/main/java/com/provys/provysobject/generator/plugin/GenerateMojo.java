@@ -8,43 +8,51 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.File;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 @Mojo(name = "generate", inheritByDefault = false, aggregator = true)
 public class GenerateMojo extends AbstractMojo {
 
     @Parameter
+    @Nullable
     private Provysdb provysdb;
 
+    @SuppressWarnings("NotNullFieldNotInitialized") // initialized via mojo parameter injection
     @Parameter(required = true)
+    @Nonnull
     private String basePackage;
 
+    @SuppressWarnings("NotNullFieldNotInitialized") // initialized via mojo parameter injection
     @Parameter(required = true)
+    @Nonnull
     private String module;
 
+    @SuppressWarnings("NotNullFieldNotInitialized") // initialized via mojo parameter injection
     @Parameter(required = true)
+    @Nonnull
     private List<Entity> entities;
 
     @Parameter
-    private String apiModule;
+    @Nullable
+    private File apiModule;
 
     @Parameter
-    private String implModule;
+    @Nullable
+    private File implModule;
 
     @Parameter
-    private String dbLoaderModule;
-
-    /**
-     * @return value of field provysdb
-     */
-    public Provysdb getProvysdb() {
-        return provysdb;
-    }
+    @Nullable
+    private File dbLoaderModule;
 
     /**
      * @return value of field module
      */
+    @Nonnull
     public String getModule() {
         return module;
     }
@@ -52,6 +60,7 @@ public class GenerateMojo extends AbstractMojo {
     /**
      * @return value of field entities
      */
+    @Nonnull
     public List<Entity> getEntities() {
         return entities;
     }
@@ -59,6 +68,7 @@ public class GenerateMojo extends AbstractMojo {
     /**
      * @return value of field basePackage
      */
+    @Nonnull
     public String getBasePackage() {
         return basePackage;
     }
@@ -66,22 +76,25 @@ public class GenerateMojo extends AbstractMojo {
     /**
      * @return value of field apiModule
      */
-    public String getApiModule() {
-        return apiModule;
+    @Nonnull
+    public Optional<File> getApiModule() {
+        return Optional.ofNullable(apiModule);
     }
 
     /**
      * @return value of field implModule
      */
-    public String getImplModule() {
-        return implModule;
+    @Nonnull
+    public Optional<File> getImplModule() {
+        return Optional.ofNullable(implModule);
     }
 
     /**
      * @return value of field dbLoaderModule
      */
-    public String getDbLoaderModule() {
-        return dbLoaderModule;
+    @Nonnull
+    public Optional<File> getDbLoaderModule() {
+        return Optional.ofNullable(dbLoaderModule);
     }
 
     @Override
@@ -101,10 +114,11 @@ public class GenerateMojo extends AbstractMojo {
         if (entities.isEmpty()) {
             throw new MojoFailureException("Cannot generate - no entity specified");
         }
-        // register this mojo for insertion
+        // register this mojo for injection
         AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
         context.getBeanFactory().registerSingleton("classGenerateMojoImpl", this);
         context.refresh();
+        // and build spring container and run it
         new SpringApplicationBuilder(Generator.class)
                 .properties(properties)
                 .registerShutdownHook(true)
