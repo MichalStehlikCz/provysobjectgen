@@ -3,6 +3,7 @@ package com.provys.provysobject.generator.plugin;
 import com.provys.common.exception.RegularException;
 import com.provys.provysobject.generator.EntityGenerator;
 import com.provys.provysobject.generator.ModuleGenerator;
+import com.squareup.javapoet.JavaFile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -31,61 +32,58 @@ public class Generator implements CommandLineRunner {
         this.moduleGenerator = Objects.requireNonNull(moduleGenerator);
     }
 
-    private void prepareDirectory(Path module) {
-        if (Files.notExists(module)) {
+    private static void writeIfMissing(JavaFile sourceFile, Path path) throws IOException {
+        if (!Files.exists(sourceFile.getPath(path))) {
+            sourceFile.writeToPath(path);
+        }
+    }
+
+    private Path prepareDirectory(Path module) {
+        var path = module.resolve("src").resolve("main").resolve("java");
+        if (Files.notExists(path)) {
             try {
                 Files.createDirectories(module);
             } catch (IOException e) {
                 throw new RegularException("PROVYSOBJECTGEN_FAILED_T_CREATE_MODULE_DIR",
-                        "Failed to create module directory", e);
+                        "Failed to create module directory " + path.toString(), e);
             }
         } else {
             if (!Files.isDirectory(module)) {
                 throw new RegularException("PROVYSOBJECTGEN_TARGET_NOT_DIRECTORY", "Target module is not directory");
             }
         }
-//        Path outputDirectory = directory;
-//        if (!this.packageName.isEmpty()) {
-//            String[] var4 = this.packageName.split("\\.");
-//            int var5 = var4.length;
-//
-//            for(int var6 = 0; var6 < var5; ++var6) {
-//                String packageComponent = var4[var6];
-//                outputDirectory = outputDirectory.resolve(packageComponent);
-//            }
-//
-//            Files.createDirectories(outputDirectory);
-//        }
-//
-//        Path outputPath = outputDirectory.resolve(this.typeSpec.name + ".java");
-//        OutputStreamWriter writer = new OutputStreamWriter(Files.newOutputStream(outputPath), charset);
+        return path;
     }
 
     private void writeApiModule(EntityGenerator entityGenerator, Path apiModule) {
-        prepareDirectory(apiModule);
+        var path = prepareDirectory(apiModule);
         try {
-            entityGenerator.generateGenInterface().writeTo(apiModule.resolve("src").resolve("main").resolve("java"));
+            entityGenerator.generateGenInterface().writeTo(path);
+            writeIfMissing(entityGenerator.generateInterface(), path);
         } catch (IOException e) {
             throw new RegularException("PROVYSOBJECTGEN_CANNOT_WRITE_API", "Cannot write api source files", e);
         }
     }
 
     private void writeImplModule(EntityGenerator entityGenerator, Path implModule) {
-        prepareDirectory(implModule);
+        var path = prepareDirectory(implModule);
         try {
-            entityGenerator.generateValue().writeTo(implModule.resolve("src").resolve("main").resolve("java"));
+            entityGenerator.generateGenProxy().writeToPath(path);
+            entityGenerator.generateValue().writeTo(path);
+
         } catch (IOException e) {
             throw new RegularException("PROVYSOBJECTGEN_CANNOT_WRITE_IMPL", "Cannot write impl source files", e);
         }
     }
 
     private void writeDbLoaderModule(EntityGenerator entityGenerator, Path dbLoaderModule) {
-        prepareDirectory(dbLoaderModule);
+        var path = prepareDirectory(dbLoaderModule);
         try {
-//            entityGenerator.generateDbLoader().writeTo(
-//                    Path.of(dbLoaderModule, "src", "main", "java"));
-            entityGenerator.generateDbLoadRunner().writeTo(
-                    dbLoaderModule.resolve("src").resolve("main").resolve("java"));
+            var dbLoader = entityGenerator.generateDbLoader();
+            if (!Files.exists(dbLoader.getPath(path))) {
+                dbLoader.writeToPath(path);
+            }
+            entityGenerator.generateDbLoadRunner().writeToPath(path);
         } catch (IOException e) {
             throw new RegularException("PROVYSOBJECTGEN_CANNOT_WRITE_DBLOADER", "Cannot write dbloader source files", e);
         }
