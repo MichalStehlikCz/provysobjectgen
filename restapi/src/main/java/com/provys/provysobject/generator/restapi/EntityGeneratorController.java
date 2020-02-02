@@ -96,6 +96,10 @@ public class EntityGeneratorController {
             notes = "Generate Jackson converter used for proxy serialization via value class")
     public String getProxySerializationConverter(@PathVariable String module,
                                                  @PathVariable("entityNm") String entityNm,
+                                                 @RequestParam(value = "package", required = false)
+                                                     @ApiParam("Package sources should be placed in; defaults to" +
+                                                     "com.provys.<module>")
+                                                     @Nullable String packageName,
                                                  @RequestParam(value = "attrs", required = false)
                                                      @ApiParam("Comma separated list of attributes to be generated; " +
                                                              "empty means all column attributes will be generated")

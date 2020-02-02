@@ -38,8 +38,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 @SuppressWarnings("squid:S1192") // we do not mind repeating string fragments...
 class DefaultEntityGenerator implements EntityGenerator {
 
-    private static final Logger LOG = LogManager.getLogger(DefaultEntityGenerator.class);
-
     @Nonnull
     private final CatalogueRepository catalogueRepository;
     @Nonnull
@@ -94,14 +92,22 @@ class DefaultEntityGenerator implements EntityGenerator {
             .addMember("value", "\"com.provys.provysobject.generator.impl.GeneratorEntity\"")
             .build();
 
+    @Nonnull
+    private static String getPackageName(String module, @Nullable String packageName) {
+        if ((packageName != null) && (!packageName.isBlank())) {
+            return packageName.toLowerCase(Locale.ENGLISH);
+        }
+        return "com.provys." + module.toLowerCase(Locale.ENGLISH);
+    }
+
     DefaultEntityGenerator(CatalogueRepository catalogueRepository, Entity entity, String module,
-                           Collection<String> friendEntities) {
+                           @Nullable String packageName, Collection<String> friendEntities) {
         this.catalogueRepository = Objects.requireNonNull(catalogueRepository);
         this.entity = Objects.requireNonNull(entity);
         this.friendEntities = new HashSet<>(friendEntities);
         this.friendEntities.add(entity.getNameNm()); // we are always friends with ourselves
-        var packageName = "com.provys." + module.toLowerCase(Locale.ENGLISH);
-        this.packageNameApi = packageName + ".api";
+        packageName = packageName.toLowerCase(Locale.ENGLISH);
+        this.packageNameApi = packageName;
         this.packageNameImpl = packageName + ".impl";
         this.packageNameImplGen = packageNameImpl;
         this.packageNameDbLoader = packageName + ".dbloader";
