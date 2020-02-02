@@ -342,12 +342,12 @@ class DefaultEntityGenerator implements EntityGenerator {
             result.addStatement("return getManager().getRepository().get$LManager()." +
                             "getById($L())",
                     catalogueRepository.getEntityManager().getByNameNm(attr.getSubdomainNm().orElseThrow())
-                            .getNameNm(), attr.getGetterName());
+                            .getcProperName(), attr.getGetterName());
         } else {
             result.addStatement("return $L().map(id -> getManager().getRepository().get$LManager()." +
                             "getById(id))", attr.getGetterName(),
                     catalogueRepository.getEntityManager().getByNameNm(attr.getSubdomainNm().orElseThrow())
-                            .getNameNm());
+                            .getcProperName());
         }
         return result.build();
     }
@@ -697,7 +697,7 @@ class DefaultEntityGenerator implements EntityGenerator {
         var result = CodeBlock.builder();
         if (attr.isMandatory()) {
             result.beginControlFlow("if (!this.$L && $L)", attr.getUpdFieldName(), attr.getUpdFieldName())
-                    .addStatement("throw new $T(LOG, \"Cannot directly set update flag $L; set value instead\")",
+                    .addStatement("throw new $T(\"Cannot directly set update flag $L; set value instead\")",
                             InternalException.class, attr.getUpdFieldName())
                     .endControlFlow();
         }
@@ -917,11 +917,6 @@ class DefaultEntityGenerator implements EntityGenerator {
                                 ClassName.get(
                                         hasNmAttr() ? ProvysNmObjectValueBuilder.class : ProvysObjectValueBuilder.class),
                                 valueBuilderName, valueName))
-                        .addField(
-                                FieldSpec.builder(Logger.class, "LOG")
-                                        .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
-                                        .initializer("$T.getLogger($T.class)", LogManager.class, valueBuilderName)
-                                        .build())
                         .addFields(getValueBuilderFields())
                         .addMethods(getValueBuilderConstructors())
                         .addMethods(getValueBuilderGetters())

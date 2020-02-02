@@ -58,8 +58,9 @@ public class Generator implements CommandLineRunner {
     private void writeApiModule(EntityGenerator entityGenerator, Path apiModule) {
         var path = prepareDirectory(apiModule);
         try {
-            entityGenerator.generateGenInterface().writeTo(path);
+            entityGenerator.generateGenInterface().writeToPath(path);
             writeIfMissing(entityGenerator.generateInterface(), path);
+            entityGenerator.generateMeta().writeToPath(path);
         } catch (IOException e) {
             throw new RegularException("PROVYSOBJECTGEN_CANNOT_WRITE_API", "Cannot write api source files", e);
         }
@@ -68,9 +69,14 @@ public class Generator implements CommandLineRunner {
     private void writeImplModule(EntityGenerator entityGenerator, Path implModule) {
         var path = prepareDirectory(implModule);
         try {
+            writeIfMissing(entityGenerator.generateProxy(), path);
+            writeIfMissing(entityGenerator.generateProxySerializationConverter(), path);
             entityGenerator.generateGenProxy().writeToPath(path);
-            entityGenerator.generateValue().writeTo(path);
-
+            entityGenerator.generateValue().writeToPath(path);
+            entityGenerator.generateValueBuilder().writeToPath(path);
+            entityGenerator.generateValueBuilderSerializer().writeToPath(path);
+            writeIfMissing(entityGenerator.generateLoaderInterface(), path);
+            writeIfMissing(entityGenerator.generateLoaderBase(), path);
         } catch (IOException e) {
             throw new RegularException("PROVYSOBJECTGEN_CANNOT_WRITE_IMPL", "Cannot write impl source files", e);
         }
@@ -79,10 +85,7 @@ public class Generator implements CommandLineRunner {
     private void writeDbLoaderModule(EntityGenerator entityGenerator, Path dbLoaderModule) {
         var path = prepareDirectory(dbLoaderModule);
         try {
-            var dbLoader = entityGenerator.generateDbLoader();
-            if (!Files.exists(dbLoader.getPath(path))) {
-                dbLoader.writeToPath(path);
-            }
+            writeIfMissing(entityGenerator.generateDbLoader(), path);
             entityGenerator.generateDbLoadRunner().writeToPath(path);
         } catch (IOException e) {
             throw new RegularException("PROVYSOBJECTGEN_CANNOT_WRITE_DBLOADER", "Cannot write dbloader source files", e);
