@@ -37,6 +37,25 @@
             <url>https://maven.pkg.github.com/MichalStehlikCz/Maven</url>
         </repository>
     </distributionManagement>
+    <profiles>
+        <profile>
+            <id>no-docker</id>
+            <properties>
+                <docker_package_phase>none</docker_package_phase>
+                <docker_run_phase>none</docker_run_phase>
+            </properties>
+        </profile>
+        <profile>
+            <id>docker</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <docker_package_phase>package</docker_package_phase>
+                <docker_run_phase>pre-integration-test</docker_run_phase>
+            </properties>
+        </profile>
+    </profiles>
     <dependencyManagement>
         <dependencies>
             <dependency>

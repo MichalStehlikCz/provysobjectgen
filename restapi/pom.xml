@@ -75,7 +75,7 @@
                 <executions>
                     <execution>
                         <id>builddocker</id>
-                        <phase>package</phase>
+                        <phase>${docker_package_phase}</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
@@ -92,7 +92,7 @@
                     </execution>
                     <execution>
                         <id>rundocker</id>
-                        <phase>pre-integration-test</phase>
+                        <phase>${docker_run_phase}</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
