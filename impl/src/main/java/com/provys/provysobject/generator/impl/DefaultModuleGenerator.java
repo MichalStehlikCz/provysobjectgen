@@ -131,15 +131,15 @@ public class DefaultModuleGenerator implements ModuleGenerator {
 
     @Nonnull
     @Override
-    public JavaFile generateDbLoader(String module, String packageName, String entityNm, @Nullable String attrs,
-                                     @Nullable String friendEntities) {
+    public JavaFile generateDbLoader(String module, @Nullable String packageName, String entityNm,
+                                     @Nullable String attrs, @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateDbLoader();
     }
 
     @Nonnull
     @Override
-    public JavaFile generateDbLoadRunner(String module, String packageName, String entityNm, @Nullable String attrs,
-                                         @Nullable String friendEntities) {
+    public JavaFile generateDbLoadRunner(String module, @Nullable String packageName, String entityNm,
+                                         @Nullable String attrs, @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateDbLoadRunner();
     }
 }

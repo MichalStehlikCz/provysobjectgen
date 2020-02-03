@@ -13,7 +13,8 @@ public interface ModuleGenerator {
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is list of attributes that should be used; if empty, all C attributes will be generated
      * @param friendEntities is list of internal names of entities under the same repository; generator generates
@@ -21,15 +22,16 @@ public interface ModuleGenerator {
      * @return generator usable for all sources for given parametrisation
      */
     @Nonnull
-    EntityGenerator getEntityGenerator(String module, String packageName, String entityNm, @Nullable List<String> attrs,
-                                       List<String> friendEntities);
+    EntityGenerator getEntityGenerator(String module, @Nullable String packageName, String entityNm,
+                                       @Nullable List<String> attrs, List<String> friendEntities);
 
     /**
      * Generate generated ancestor of interface for accessing instances of given object
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -38,7 +40,7 @@ public interface ModuleGenerator {
      * @return source file for given class
      */
     @Nonnull
-    JavaFile generateGenInterface(String module, String packageName, String entityNm, @Nullable String attrs,
+    JavaFile generateGenInterface(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                                   @Nullable String friendEntities);
 
     /**
@@ -46,7 +48,8 @@ public interface ModuleGenerator {
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -55,7 +58,7 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateInterface(String module, String packageName, String entityNm, @Nullable String attrs,
+    JavaFile generateInterface(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                                @Nullable String friendEntities);
 
     /**
@@ -63,7 +66,8 @@ public interface ModuleGenerator {
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -72,7 +76,7 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateMeta(String module, String packageName, String entityNm, @Nullable String attrs,
+    JavaFile generateMeta(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                           @Nullable String friendEntities);
 
     /**
@@ -80,7 +84,8 @@ public interface ModuleGenerator {
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -89,7 +94,7 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateGenProxy(String module, String packageName, String entityNm, @Nullable String attrs,
+    JavaFile generateGenProxy(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                               @Nullable String friendEntities);
 
     /**
@@ -97,7 +102,8 @@ public interface ModuleGenerator {
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -106,7 +112,7 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateProxy(String module, String packageName, String entityNm, @Nullable String attrs,
+    JavaFile generateProxy(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                            @Nullable String friendEntities);
 
     /**
@@ -114,7 +120,8 @@ public interface ModuleGenerator {
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -123,7 +130,7 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateProxySerializationConverter(String module, String packageName, String entityNm,
+    JavaFile generateProxySerializationConverter(String module, @Nullable String packageName, String entityNm,
                                                  @Nullable String attrs, @Nullable String friendEntities);
 
     /**
@@ -131,7 +138,8 @@ public interface ModuleGenerator {
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -140,7 +148,7 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateValue(String module, String packageName, String entityNm, @Nullable String attrs,
+    JavaFile generateValue(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                            @Nullable String friendEntities);
 
     /**
@@ -148,7 +156,8 @@ public interface ModuleGenerator {
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -157,7 +166,7 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateValueBuilder(String module, String packageName, String entityNm, @Nullable String attrs,
+    JavaFile generateValueBuilder(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                                   @Nullable String friendEntities);
 
     /**
@@ -165,7 +174,8 @@ public interface ModuleGenerator {
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -174,15 +184,16 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateValueBuilderSerializer(String module, String packageName, String entityNm, @Nullable String attrs,
-                                            @Nullable String friendEntities);
+    JavaFile generateValueBuilderSerializer(String module, @Nullable String packageName, String entityNm,
+                                            @Nullable String attrs, @Nullable String friendEntities);
 
     /**
      * Generate loader interface - generated template for loader interface, that is later manually modified
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -191,15 +202,16 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateLoaderInterface(String module, String packageName, String entityNm, @Nullable String attrs,
-                                     @Nullable String friendEntities);
+    JavaFile generateLoaderInterface(String module, @Nullable String packageName, String entityNm,
+                                     @Nullable String attrs, @Nullable String friendEntities);
 
     /**
      * Generate loader base - generated template for loader base class, that is later manually modified
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -208,7 +220,7 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateLoaderBase(String module, String packageName, String entityNm, @Nullable String attrs,
+    JavaFile generateLoaderBase(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                                 @Nullable String friendEntities);
 
     /**
@@ -216,7 +228,8 @@ public interface ModuleGenerator {
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -225,7 +238,7 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateDbLoader(String module, String packageName, String entityNm, @Nullable String attrs,
+    JavaFile generateDbLoader(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                               @Nullable String friendEntities);
 
     /**
@@ -233,7 +246,8 @@ public interface ModuleGenerator {
      *
      * @param module is module we generate; repository is prefixed with this module
      * @param packageName is full name of root of package sources will be placed in; subpackages are created based on
-     *                   convention (impl, dbloader), api is placed in root package
+     *                   convention (impl, dbloader), api is placed in root package. If not specified, package
+     *                   {@code com.provys.<module>} is used
      * @param entityNm is internal name of entity class should be based on
      * @param attrs is comma separated list of attributes that should be used; if empty, all C attributes will be
      *             generated
@@ -242,6 +256,6 @@ public interface ModuleGenerator {
      * @return source code for given class
      */
     @Nonnull
-    JavaFile generateDbLoadRunner(String module, String packageName, String entityNm, @Nullable String attrs,
+    JavaFile generateDbLoadRunner(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                                   @Nullable String friendEntities);
 }

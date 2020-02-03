@@ -29,12 +29,16 @@ public class EntityGeneratorController {
                     "attribute getters")
     public String getGenInterface(@PathVariable String module,
                                   @PathVariable("entityNm") String entityNm,
+                                  @RequestParam(value = "package", required = false)
+                                      @ApiParam("Package sources should be placed in; defaults to" +
+                                              "com.provys.<module>")
+                                      @Nullable String packageName,
                                   @RequestParam(value = "attrs", required = false)
                                       @ApiParam("Comma separated list of attributes to be generated; empty means all " +
                                               "column attributes will be generated") @Nullable String attrs,
                                   @RequestParam(value = "friendEntities", required = false)
                                       @Nullable String friendEntities) {
-        return moduleGenerator.generateGenInterface(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateGenInterface(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/interface")
@@ -42,12 +46,16 @@ public class EntityGeneratorController {
             notes = "Generate interface, representing instance of object of given type")
     public String getInterface(@PathVariable String module,
                                @PathVariable("entityNm") String entityNm,
+                               @RequestParam(value = "package", required = false)
+                                   @ApiParam("Package sources should be placed in; defaults to" +
+                                           "com.provys.<module>")
+                                   @Nullable String packageName,
                                @RequestParam(value = "attrs", required = false)
                                    @ApiParam("Comma separated list of attributes to be generated; empty means all " +
                                            "column attributes will be generated") @Nullable String attrs,
                                @RequestParam(value = "friendEntities", required = false)
                                @Nullable String friendEntities) {
-        return moduleGenerator.generateInterface(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateInterface(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/meta")
@@ -55,12 +63,16 @@ public class EntityGeneratorController {
             notes = "Generate meta class, providing statical meta-information for type")
     public String getMeta(@PathVariable String module,
                           @PathVariable("entityNm") String entityNm,
+                          @RequestParam(value = "package", required = false)
+                              @ApiParam("Package sources should be placed in; defaults to" +
+                                      "com.provys.<module>")
+                              @Nullable String packageName,
                           @RequestParam(value = "attrs", required = false)
                               @ApiParam("Comma separated list of attributes to be generated; empty means all " +
                                       "column attributes will be generated") @Nullable String attrs,
                           @RequestParam(value = "friendEntities", required = false)
                           @Nullable String friendEntities) {
-        return moduleGenerator.generateMeta(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateMeta(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/genproxy")
@@ -69,12 +81,16 @@ public class EntityGeneratorController {
                     " by generated interface")
     public String getGenProxy(@PathVariable String module,
                               @PathVariable("entityNm") String entityNm,
+                              @RequestParam(value = "package", required = false)
+                                  @ApiParam("Package sources should be placed in; defaults to" +
+                                          "com.provys.<module>")
+                                  @Nullable String packageName,
                               @RequestParam(value = "attrs", required = false)
                                   @ApiParam("Comma separated list of attributes to be generated; empty means all " +
                                           "column attributes will be generated") @Nullable String attrs,
                               @RequestParam(value = "friendEntities", required = false)
                               @Nullable String friendEntities) {
-        return moduleGenerator.generateGenProxy(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateGenProxy(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/proxy")
@@ -83,12 +99,16 @@ public class EntityGeneratorController {
                     " later not regenerated")
     public String getProxy(@PathVariable String module,
                            @PathVariable("entityNm") String entityNm,
+                           @RequestParam(value = "package", required = false)
+                               @ApiParam("Package sources should be placed in; defaults to" +
+                                       "com.provys.<module>")
+                               @Nullable String packageName,
                            @RequestParam(value = "attrs", required = false)
                                @ApiParam("Comma separated list of attributes to be generated; empty means all " +
                                        "column attributes will be generated") @Nullable String attrs,
                            @RequestParam(value = "friendEntities", required = false)
                            @Nullable String friendEntities) {
-        return moduleGenerator.generateProxy(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateProxy(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/proxyserializationconverter")
@@ -106,7 +126,8 @@ public class EntityGeneratorController {
                                                      @Nullable String attrs,
                                                  @RequestParam(value = "friendEntities", required = false)
                                                  @Nullable String friendEntities) {
-        return moduleGenerator.generateProxySerializationConverter(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateProxySerializationConverter(module, packageName, entityNm, attrs, friendEntities)
+                .toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/value")
@@ -114,12 +135,16 @@ public class EntityGeneratorController {
             notes = "Generate value class - object holding all object data")
     public String getValue(@PathVariable String module,
                            @PathVariable("entityNm") String entityNm,
+                           @RequestParam(value = "package", required = false)
+                               @ApiParam("Package sources should be placed in; defaults to" +
+                                       "com.provys.<module>")
+                               @Nullable String packageName,
                            @RequestParam(value = "attrs", required = false)
                                @ApiParam("Comma separated list of attributes to be generated; empty means all " +
                                        "column attributes will be generated") @Nullable String attrs,
                            @RequestParam(value = "friendEntities", required = false)
                            @Nullable String friendEntities) {
-        return moduleGenerator.generateValue(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateValue(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/valuebuilder")
@@ -127,12 +152,16 @@ public class EntityGeneratorController {
             notes = "Generate value builder class - object allowing creation or modification of object value")
     public String getValueBuilder(@PathVariable String module,
                                   @PathVariable("entityNm") String entityNm,
+                                  @RequestParam(value = "package", required = false)
+                                      @ApiParam("Package sources should be placed in; defaults to" +
+                                              "com.provys.<module>")
+                                      @Nullable String packageName,
                                   @RequestParam(value = "attrs", required = false)
                                       @ApiParam("Comma separated list of attributes to be generated; empty means all " +
                                               "column attributes will be generated") @Nullable String attrs,
                                   @RequestParam(value = "friendEntities", required = false)
                                   @Nullable String friendEntities) {
-        return moduleGenerator.generateValueBuilder(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateValueBuilder(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/valuebuilderserializer")
@@ -141,13 +170,17 @@ public class EntityGeneratorController {
                     " fields with upd flag set")
     public String getValueBuilderSerializer(@PathVariable String module,
                                             @PathVariable("entityNm") String entityNm,
+                                            @RequestParam(value = "package", required = false)
+                                                @ApiParam("Package sources should be placed in; defaults to" +
+                                                        "com.provys.<module>")
+                                                @Nullable String packageName,
                                             @RequestParam(value = "attrs", required = false)
                                                 @ApiParam("Comma separated list of attributes to be generated; empty " +
                                                         "means all column attributes will be generated")
                                                 @Nullable String attrs,
                                             @RequestParam(value = "friendEntities", required = false)
                                             @Nullable String friendEntities) {
-        return moduleGenerator.generateValueBuilderSerializer(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateValueBuilderSerializer(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/loader")
@@ -156,12 +189,16 @@ public class EntityGeneratorController {
                     " Only used to initialize file if one doesn't exist, is not refreshed later")
     public String getLoaderInterface(@PathVariable String module,
                                      @PathVariable("entityNm") String entityNm,
+                                     @RequestParam(value = "package", required = false)
+                                         @ApiParam("Package sources should be placed in; defaults to" +
+                                                 "com.provys.<module>")
+                                         @Nullable String packageName,
                                      @RequestParam(value = "attrs", required = false)
                                          @ApiParam("Comma separated list of attributes to be generated; empty means " +
                                                  "all column attributes will be generated") @Nullable String attrs,
                                      @RequestParam(value = "friendEntities", required = false)
                                      @Nullable String friendEntities) {
-        return moduleGenerator.generateLoaderInterface(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateLoaderInterface(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/loaderbase")
@@ -169,12 +206,16 @@ public class EntityGeneratorController {
             notes = "Generate loader base class - common ancestor for loaders for given entity.")
     public String getLoaderBase(@PathVariable String module,
                                 @PathVariable("entityNm") String entityNm,
+                                @RequestParam(value = "package", required = false)
+                                    @ApiParam("Package sources should be placed in; defaults to" +
+                                            "com.provys.<module>")
+                                    @Nullable String packageName,
                                 @RequestParam(value = "attrs", required = false)
                                     @ApiParam("Comma separated list of attributes to be generated; empty means all " +
                                             "column attributes will be generated") @Nullable String attrs,
                                 @RequestParam(value = "friendEntities", required = false)
                                 @Nullable String friendEntities) {
-        return moduleGenerator.generateLoaderBase(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateLoaderBase(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/dbloader")
@@ -182,12 +223,16 @@ public class EntityGeneratorController {
             notes = "Generate database loader class - at the moment, does not generate load by methods.")
     public String getDbLoader(@PathVariable String module,
                               @PathVariable("entityNm") String entityNm,
+                              @RequestParam(value = "package", required = false)
+                                  @ApiParam("Package sources should be placed in; defaults to" +
+                                          "com.provys.<module>")
+                                  @Nullable String packageName,
                               @RequestParam(value = "attrs", required = false)
                                   @ApiParam("Comma separated list of attributes to be generated; empty means all " +
                                           "column attributes will be generated") @Nullable String attrs,
                               @RequestParam(value = "friendEntities", required = false)
                               @Nullable String friendEntities) {
-        return moduleGenerator.generateDbLoader(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateDbLoader(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 
     @GetMapping("/{module:[a-zA-Z][a-zA-Z_0-9]*}/{entityNm:[a-zA-Z][a-zA-Z_0-9]*}/dbloadrunner")
@@ -196,11 +241,15 @@ public class EntityGeneratorController {
                     "converts them to value objects.")
     public String getDbLoadRunner(@PathVariable String module,
                                   @PathVariable("entityNm") String entityNm,
+                                  @RequestParam(value = "package", required = false)
+                                      @ApiParam("Package sources should be placed in; defaults to" +
+                                              "com.provys.<module>")
+                                      @Nullable String packageName,
                                   @RequestParam(value = "attrs", required = false)
                                       @ApiParam("Comma separated list of attributes to be generated; empty means all " +
                                               "column attributes will be generated") @Nullable String attrs,
                                   @RequestParam(value = "friendEntities", required = false)
                                   @Nullable String friendEntities) {
-        return moduleGenerator.generateDbLoadRunner(module, entityNm, attrs, friendEntities).toString();
+        return moduleGenerator.generateDbLoadRunner(module, packageName, entityNm, attrs, friendEntities).toString();
     }
 }
