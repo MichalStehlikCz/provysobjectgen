@@ -23,19 +23,14 @@ public class GenerateMojo extends AbstractMojo {
     @Nullable
     private Provysdb provysdb;
 
-    @SuppressWarnings("NotNullFieldNotInitialized") // initialized via mojo parameter injection
-    @Parameter(required = true)
-    @Nonnull
+    @Parameter
+    @Nullable
     private String basePackage;
 
     @SuppressWarnings("NotNullFieldNotInitialized") // initialized via mojo parameter injection
     @Parameter(required = true)
     @Nonnull
     private String module;
-
-    @Parameter(name = "package")
-    @Nullable
-    private String packageName;
 
     @SuppressWarnings("NotNullFieldNotInitialized") // initialized via mojo parameter injection
     @Parameter(required = true)
@@ -63,14 +58,6 @@ public class GenerateMojo extends AbstractMojo {
     }
 
     /**
-     * @return value of field packageName
-     */
-    @Nullable
-    public String getPackageName() {
-        return packageName;
-    }
-
-    /**
      * @return value of field entities
      */
     @Nonnull
@@ -81,7 +68,7 @@ public class GenerateMojo extends AbstractMojo {
     /**
      * @return value of field basePackage
      */
-    @Nonnull
+    @Nullable
     public String getBasePackage() {
         return basePackage;
     }
