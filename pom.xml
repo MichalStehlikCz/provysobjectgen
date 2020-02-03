@@ -4,7 +4,7 @@
     <groupId>com.provys.provysobject</groupId>
     <artifactId>provysobjectgen</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <modules>
         <module>impl</module>
         <module>spring</module>
@@ -16,7 +16,7 @@
     </properties>
     <scm>
         <developerConnection>scm:git:https://github.com/MichalStehlikCz/provysobjectgen.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v1.0.0</tag>
     </scm>
     <repositories>
         <repository>
