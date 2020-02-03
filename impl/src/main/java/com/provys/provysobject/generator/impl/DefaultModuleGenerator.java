@@ -24,7 +24,7 @@ public class DefaultModuleGenerator implements ModuleGenerator {
 
     @Nonnull
     @Override
-    public EntityGenerator getEntityGenerator(String module, String packageName, String entityNm,
+    public EntityGenerator getEntityGenerator(String module, @Nullable String packageName, String entityNm,
                                               @Nullable List<String> attrs, List<String> friendEntities) {
         return new DefaultEntityGenerator(catalogueRepository,
                 catalogueRepository.getEntityManager().getByNameNm(entityNm), module, packageName, friendEntities);
@@ -46,7 +46,7 @@ public class DefaultModuleGenerator implements ModuleGenerator {
     }
 
     @Nonnull
-    private EntityGenerator getEntityGenerator(String module, String packageName, String entityNm,
+    private EntityGenerator getEntityGenerator(String module, @Nullable String packageName, String entityNm,
                                                @Nullable String attrs, @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, parseAttrs(attrs),
                 parseFriendEntities(friendEntities));
@@ -54,78 +54,78 @@ public class DefaultModuleGenerator implements ModuleGenerator {
 
     @Nonnull
     @Override
-    public JavaFile generateGenInterface(String module, String packageName, String entityNm, @Nullable String attrs,
-                                         @Nullable String friendEntities) {
+    public JavaFile generateGenInterface(String module, @Nullable String packageName, String entityNm,
+                                         @Nullable String attrs, @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateGenInterface();
     }
 
     @Nonnull
     @Override
-    public JavaFile generateInterface(String module, String packageName, String entityNm, @Nullable String attrs,
-                                      @Nullable String friendEntities) {
+    public JavaFile generateInterface(String module, @Nullable String packageName, String entityNm,
+                                      @Nullable String attrs, @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateInterface();
     }
 
     @Nonnull
     @Override
-    public JavaFile generateMeta(String module, String packageName, String entityNm, @Nullable String attrs,
+    public JavaFile generateMeta(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                                  @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateMeta();
     }
 
     @Nonnull
     @Override
-    public JavaFile generateGenProxy(String module, String packageName, String entityNm, @Nullable String attrs,
-                                     @Nullable String friendEntities) {
+    public JavaFile generateGenProxy(String module, @Nullable String packageName, String entityNm,
+                                     @Nullable String attrs, @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateGenProxy();
     }
 
     @Nonnull
     @Override
-    public JavaFile generateProxy(String module, String packageName, String entityNm, @Nullable String attrs,
+    public JavaFile generateProxy(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                                   @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateProxy();
     }
 
     @Nonnull
     @Override
-    public JavaFile generateProxySerializationConverter(String module, String packageName, String entityNm,
+    public JavaFile generateProxySerializationConverter(String module, @Nullable String packageName, String entityNm,
                                                         @Nullable String attrs, @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateProxySerializationConverter();
     }
 
     @Nonnull
     @Override
-    public JavaFile generateValue(String module, String packageName, String entityNm, @Nullable String attrs,
+    public JavaFile generateValue(String module, @Nullable String packageName, String entityNm, @Nullable String attrs,
                                   @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateValue();
     }
 
     @Nonnull
     @Override
-    public JavaFile generateValueBuilder(String module, String packageName, String entityNm, @Nullable String attrs,
-                                         @Nullable String friendEntities) {
+    public JavaFile generateValueBuilder(String module, @Nullable String packageName, String entityNm,
+                                         @Nullable String attrs, @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateValueBuilder();
     }
 
     @Nonnull
     @Override
-    public JavaFile generateValueBuilderSerializer(String module, String packageName, String entityNm,
+    public JavaFile generateValueBuilderSerializer(String module, @Nullable String packageName, String entityNm,
                                                    @Nullable String attrs, @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateValueBuilderSerializer();
     }
 
     @Nonnull
     @Override
-    public JavaFile generateLoaderInterface(String module, String packageName, String entityNm, @Nullable String attrs,
-                                            @Nullable String friendEntities) {
+    public JavaFile generateLoaderInterface(String module, @Nullable String packageName, String entityNm,
+                                            @Nullable String attrs, @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateLoaderInterface();
     }
 
     @Nonnull
     @Override
-    public JavaFile generateLoaderBase(String module, String packageName, String entityNm, @Nullable String attrs,
-                                       @Nullable String friendEntities) {
+    public JavaFile generateLoaderBase(String module, @Nullable String packageName, String entityNm,
+                                       @Nullable String attrs, @Nullable String friendEntities) {
         return getEntityGenerator(module, packageName, entityNm, attrs, friendEntities).generateLoaderBase();
     }
 

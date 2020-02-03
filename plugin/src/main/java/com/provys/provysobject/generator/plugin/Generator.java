@@ -98,8 +98,8 @@ public class Generator implements CommandLineRunner {
         // run
         for (var entity : mojo.getEntities()) {
             mojo.getLog().info("Generate sources for " + entity.nameNm);
-            var entityGenerator = moduleGenerator.getEntityGenerator(mojo.getModule(), entity.nameNm, entity.attrs,
-                    friendEntities);
+            final var entityGenerator = moduleGenerator.getEntityGenerator(mojo.getModule(), mojo.getBasePackage(),
+                    entity.nameNm, entity.attrs, friendEntities);
             mojo.getApiModule().ifPresent(apiModule -> writeApiModule(entityGenerator, apiModule));
             mojo.getImplModule().ifPresent(implModule -> writeImplModule(entityGenerator, implModule));
             mojo.getDbLoaderModule().ifPresent(dbLoaderModule -> writeDbLoaderModule(entityGenerator, dbLoaderModule));

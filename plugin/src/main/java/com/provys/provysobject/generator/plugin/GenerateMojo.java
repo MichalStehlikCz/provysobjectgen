@@ -33,9 +33,8 @@ public class GenerateMojo extends AbstractMojo {
     @Nonnull
     private String module;
 
-    @SuppressWarnings("NotNullFieldNotInitialized") // initialized via mojo parameter injection
-    @Parameter(name = "package", required = true)
-    @Nonnull
+    @Parameter(name = "package")
+    @Nullable
     private String packageName;
 
     @SuppressWarnings("NotNullFieldNotInitialized") // initialized via mojo parameter injection
@@ -66,7 +65,7 @@ public class GenerateMojo extends AbstractMojo {
     /**
      * @return value of field packageName
      */
-    @Nonnull
+    @Nullable
     public String getPackageName() {
         return packageName;
     }
